@@ -3,31 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
     <title>MCode</title>
     <link rel="stylesheet" href="./src/styles.css" />
+    <link
+      rel="stylesheet"
+      data-name="vs/editor/editor.main"
+      href="./vendor/monaco/vs/editor/editor.main.css"
+    />
   </head>
   <body>
     <div id="app">
       <aside id="sidebar" class="panel">
         <div class="panel-title">Explorer</div>
-        <div id="file-tree" class="file-tree"></div>
+        <div id="file-tree" class="file-tree" role="tree" aria-label="Project files"></div>
       </aside>
+
+      <div id="split-grip" role="separator" aria-orientation="vertical" tabindex="-1"></div>
 
       <main id="workspace" class="panel">
         <div id="tabs" class="tabs"></div>
-        <textarea
-          id="editor"
-          class="editor"
-          spellcheck="false"
-          placeholder="Open a file from the explorer to start editing"
-        ></textarea>
+        <div id="editor" class="editor-host" aria-label="Code editor"></div>
       </main>
 
       <footer id="status-bar">
-        <span id="status-left">Starting…</span>
+        <div class="status-side">
+          <button
+            id="sidebar-toggle"
+            class="icon-btn"
+            type="button"
+            title="Toggle explorer (Ctrl+B)"
+            aria-expanded="true"
+          ></button>
+          <span id="status-left">Starting…</span>
+        </div>
         <span id="status-right"></span>
       </footer>
     </div>
+    <script>
+      (function () {
+        var base = new URL('./vendor/monaco/vs/', document.baseURI).href;
+        self.MonacoEnvironment = {
+          getWorkerUrl: function () {
+            var src =
+              "self.MonacoEnvironment = { baseUrl: '" +
+              base +
+              "' }; importScripts('" +
+              base +
+              "base/worker/workerMain.js');";
+            return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(src);
+          },
+        };
+      })();
+    </script>
+    <script src="./vendor/monaco/vs/loader.js"></script>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

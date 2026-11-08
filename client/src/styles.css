@@ -1,16 +1,35 @@
-/* MCode — IDE shell styling. Intentionally minimal. */
+/* MCode — IDE shell.
+   Chrome sits on a sans stack (system UI voice), the editor on mono.
+   Tokens: one 4px-base spacing scale, four surface steps, semantic
+   states — selection is accent-tinted, hover is neutral rise. */
 
 :root {
-  --bg-0: #16181d;
-  --bg-1: #1d2026;
-  --bg-2: #23262e;
-  --fg-0: #e8eaed;
-  --fg-dim: #9aa0a6;
-  --accent: #4f8cff;
-  --border: #2c303a;
+  --bg-0: #16181d; /* editor surface */
+  --bg-1: #1b1e24; /* chrome: sidebar, tabs, status */
+  --bg-2: #23262e; /* raised: hover */
+  --bg-3: #282c35; /* raised-2: pressed/open */
 
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, 'Cascadia Mono', monospace;
-  font-size: 13px;
+  --fg-0: #e6e8ec; /* primary text   12.6:1 on bg-1 */
+  --fg-1: #b6bcc8; /* secondary text  8.8:1 */
+  --fg-dim: #8a919e; /* muted labels   5.4:1 */
+
+  --accent: #4f8cff;
+  --accent-soft: #26344d; /* selection wash on bg-1 */
+  --accent-text: #cfdefc; /* text on selection wash 10.5:1 */
+
+  --border: #262a33;
+  --border-strong: #323744;
+
+  --r-s: 3px;
+  --r-m: 5px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+
+  --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'Cascadia Mono', monospace;
 }
 
 * { box-sizing: border-box; }
@@ -18,27 +37,170 @@
 html, body {
   height: 100%;
   margin: 0;
-  background: var(--bg-0);
+  background: var(--bg-1);
   color: var(--fg-0);
+  font-family: var(--font-ui);
+  font-size: 13px;
 }
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* --- browser surfaces themed (scrollbars, selection, caret) --- */
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 6px;
+  background-color: var(--border-strong);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: #3f4552; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+::selection { background: rgba(79, 140, 255, 0.28); }
+
+.editor-host { caret-color: var(--accent); }
+
+:focus-visible {
+  outline: 1.5px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* --- app frame --- */
 
 #app {
   display: grid;
-  grid-template-columns: 260px 1fr;
-  grid-template-rows: 1fr auto;
+  grid-template-columns: var(--sidebar-w, 264px) 5px 1fr;
+  grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
 }
+
+#app[data-sidebar='collapsed'] #sidebar { display: none; }
+
+/* --- sidebar --- */
 
 #sidebar {
   grid-column: 1;
   grid-row: 1;
   background: var(--bg-1);
   border-right: 1px solid var(--border);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-#workspace {
+.panel-title {
+  display: flex;
+  align-items: center;
+  padding: 10px 8px 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+#file-tree {
+  flex: 1;
+  min-width: 0; /* as a flex item, let the tree shrink so rows clip instead of inflating */
+  padding-bottom: var(--space-3);
+}
+
+.tree-entry { min-width: 0; }
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding-left: calc(8px + var(--depth, 0) * 12px);
+  padding-right: var(--space-2);
+  border-radius: var(--r-s);
+  margin: 0 4px;               /* keeps the hover pill off the edge */
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--fg-1);
+  transition: background-color 0.12s ease-out, color 0.12s ease-out;
+  min-width: 0;
+}
+
+.tree-node:hover { background: var(--bg-2); color: var(--fg-0); }
+
+.tree-node.sel {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.tree-node.sel .icon { color: var(--accent); }
+
+.tree-node .icon { flex: 0 0 auto; width: 14px; height: 14px; }
+.tree-node.dir > .icon { color: var(--fg-0); }
+
+.tree-node .caret { flex: 0 0 auto; display: grid; place-items: center; width: 12px; height: 12px; }
+.tree-node .caret .icon { width: 12px; height: 12px; color: var(--fg-dim); transition: transform 0.15s ease-out; }
+.tree-node.expanded .caret .icon { transform: rotate(90deg); }
+.tree-node.expanded > .label { color: var(--fg-0); }
+
+.tree-node .label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-node.root > .label { font-weight: 600; color: var(--fg-0); }
+
+.tree-children { min-width: 0; }
+.tree-children.hidden { display: none; }
+
+.tree-note {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  padding-left: calc(8px + var(--depth, 0) * 12px);
+  margin: 0 4px;
+  color: var(--fg-dim);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- split grip --- */
+
+#split-grip {
   grid-column: 2;
+  grid-row: 1;
+  cursor: col-resize;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  touch-action: none;
+}
+#split-grip::before {
+  content: '';
+  width: 3px;
+  border-radius: 2px;
+  margin: 6px 0;
+  background: transparent;
+  transition: background-color 0.12s ease-out;
+}
+#split-grip:hover::before,
+body.col-resizing #split-grip::before { background: var(--border-strong); }
+
+body.col-resizing {
+  cursor: col-resize;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* --- workspace --- */
+
+#workspace {
+  grid-column: 3;
   grid-row: 1;
   display: flex;
   flex-direction: column;
@@ -46,87 +208,43 @@ html, body {
   background: var(--bg-0);
 }
 
-#status-bar {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  display: flex;
-  justify-content: space-between;
-  padding: 3px 10px;
-  background: var(--bg-1);
-  border-top: 1px solid var(--border);
-  color: var(--fg-dim);
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.panel-title {
-  padding: 8px 12px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-dim);
-}
-
-/* --- explorer tree --- */
-
-#file-tree { padding: 4px 0; }
-
-.tree-node {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.tree-node:hover { background: var(--bg-2); }
-
-.tree-node .caret {
-  flex: 0 0 10px;
-  color: var(--fg-dim);
-  text-align: center;
-}
-
-.tree-node.root > .label { font-weight: 600; }
-
-.tree-children { padding-left: 14px; }
-.tree-children.hidden { display: none; }
-
-.tree-loading {
-  padding: 2px 10px;
-  color: var(--fg-dim);
-  font-style: italic;
-}
-
 /* --- tabs --- */
 
 .tabs {
   display: flex;
+  flex: 0 0 auto;
   background: var(--bg-1);
-  border-bottom: 1px solid var(--border);
-  min-height: 30px;
+  min-height: 34px;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .tab {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-right: 1px solid var(--border);
+  gap: var(--space-2);
+  height: 34px;
+  padding: 0 var(--space-2) 0 var(--space-3);
   color: var(--fg-dim);
   cursor: pointer;
-  user-select: none;
   white-space: nowrap;
+  user-select: none;
+  transition: background-color 0.12s ease-out, color 0.12s ease-out;
+}
+.tab + .tab { box-shadow: -1px 0 0 var(--border); }
+.tab:hover { background: var(--bg-2); color: var(--fg-1); }
+.tab.active { background: var(--bg-0); color: var(--fg-0); box-shadow: inset 0 2px 0 var(--accent), -1px 0 0 var(--border); }
+
+.tab .label {
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tab:hover { background: var(--bg-2); }
-.tab.active { background: var(--bg-0); color: var(--fg-0); }
-
 .tab .dot {
+  flex: 0 0 auto;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -134,23 +252,103 @@ html, body {
 }
 .tab .dot.hidden { display: none; }
 
-.tab .close { color: var(--fg-dim); }
-.tab .close:hover { color: var(--fg-0); }
+.tab-close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.12s ease-out, background-color 0.12s ease-out;
+}
+.tab:hover .tab-close, .tab.active .tab-close { opacity: 0.8; }
+.tab-close:hover { opacity: 1 !important; background: var(--bg-3); }
+.tab-close .icon { width: 10px; height: 10px; }
 
 /* --- editor --- */
 
-#editor {
+#editor,
+.editor-host {
   flex: 1;
   width: 100%;
-  resize: none;
-  border: 0;
-  outline: none;
+  min-height: 0;
   background: var(--bg-0);
-  color: var(--fg-0);
-  font: inherit;
-  padding: 10px 14px;
-  tab-size: 2;
-  caret-color: var(--accent);
+  user-select: text;
+  -webkit-user-select: text;
 }
 
-#editor::placeholder { color: var(--fg-dim); }
+#editor .monaco-editor,
+#editor .monaco-editor-background,
+#editor .monaco-editor .margin {
+  background: var(--bg-0);
+}
+
+/* --- status bar --- */
+
+#status-bar {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 26px;
+  padding: 0 var(--space-3) 0 4px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  color: var(--fg-dim);
+  font-size: 12px;
+}
+
+.status-side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+#status-left,
+#status-right {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#status-left { flex: 1; min-width: 0; }
+#status-right { flex: 0 1 auto; min-width: 0; max-width: 45%; }
+#status-right:empty { display: none; }
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-m);
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  transition: background-color 0.12s ease-out, color 0.12s ease-out;
+}
+.icon-btn:hover { background: var(--bg-2); color: var(--fg-0); }
+.icon-btn .icon { width: 15px; height: 15px; }
+
+/* --- adaptation --- */
+
+@media (pointer: coarse) {
+  .tree-node { height: 32px; }
+  .icon-btn { width: 32px; height: 32px; }
+  #split-grip::before { width: 7px; }
+  .tab { height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}

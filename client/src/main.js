@@ -1,16 +1,23 @@
-// MCode client entry point: wires sidebar, editor tabs, and the status bar.
+// MCode client entry point: wires layout, sidebar, editor tabs, status bar.
 
 import { invoke, ipcAvailable } from './ipc.js';
 import { mountFileTree } from './tree.js';
 import { createEditor } from './editor.js';
+import { initLayout } from './layout.js';
+import { panelIcon } from './icons.js';
 
+const appEl = document.getElementById('app');
 const treeEl = document.getElementById('file-tree');
 const tabsEl = document.getElementById('tabs');
 const editorEl = document.getElementById('editor');
 const statusLeft = document.getElementById('status-left');
 const statusRight = document.getElementById('status-right');
+const sidebarToggleEl = document.getElementById('sidebar-toggle');
+const splitGripEl = document.getElementById('split-grip');
 
 let version = '';
+let tree = null;
+let editor = null;
 
 function setStatus(message) {
   statusLeft.textContent = message;
@@ -18,7 +25,7 @@ function setStatus(message) {
 
 function updateStatusRight() {
   const parts = [];
-  const active = editor.active;
+  const active = editor?.active;
   if (active) {
     parts.push(`${active.path}${active.dirty ? ' •' : ''}`);
   }
@@ -26,13 +33,11 @@ function updateStatusRight() {
     parts.push(`v${version}`);
   }
   statusRight.textContent = parts.join('   ');
+  tree?.setActiveFile(active?.path ?? null);
 }
 
-const editor = createEditor({
-  textarea: editorEl,
-  tabsBar: tabsEl,
-  onStateChange: updateStatusRight,
-});
+initLayout({ app: appEl, grip: splitGripEl, toggle: sidebarToggleEl });
+sidebarToggleEl.innerHTML = panelIcon;
 
 async function openFileFromTree(entry) {
   try {
@@ -52,7 +57,18 @@ window.addEventListener('keydown', (event) => {
 });
 
 async function init() {
-  await mountFileTree(treeEl, { onOpen: openFileFromTree, onStatus: setStatus });
+  try {
+    editor = await createEditor({
+      container: editorEl,
+      tabsBar: tabsEl,
+      onStateChange: updateStatusRight,
+    });
+  } catch (err) {
+    setStatus(`Editor failed to load: ${err}`);
+    return;
+  }
+
+  tree = await mountFileTree(treeEl, { onOpen: openFileFromTree, onStatus: setStatus });
 
   if (!ipcAvailable()) {
     setStatus('Running outside Tauri — IPC unavailable');
