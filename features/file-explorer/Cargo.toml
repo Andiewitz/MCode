@@ -1,0 +1,9 @@
+[package]
+name = "file-explorer"
+version.workspace = true
+edition.workspace = true
+description = "Directory listing and text file IO for the MCode explorer"
+license.workspace = true
+
+[dependencies]
+serde.workspace = true

@@ -48,5 +48,5 @@ of background services — one binary.
 
 - Icons: `bundle.icon` is intentionally empty. Generate with
   `cargo tauri icon assets/icon.png` once a logo exists (`tauri build` requires icons).
-- Frontend is a placeholder shell (contenteditable editor); the editor feature
-  will replace it.
+- Editing surface is a shared `<textarea>`; the rope-based buffer model in
+  `features/editor-core` is not wired into the UI yet.

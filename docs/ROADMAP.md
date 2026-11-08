@@ -7,12 +7,13 @@ Ordered, intentionally small steps — the IDE earns each feature.
 - [x] Tauri v2 app shell, workspace layout, IPC sanity commands
 - [x] Feature-crate pattern (`features/editor-core`)
 
-## 0.2 — usable editor
+## 0.2 — usable editor (current step)
 
-- [ ] File explorer sidebar (fs access via commands)
-- [ ] Tabs + open/close/persist state
-- [ ] Real editing surface: textarea → single-file buffers → editor-core crate
-- [ ] Save / Ctrl-S handling, dirty-state indicator
+- [x] File explorer: lazy directory listing over IPC, dirs first, case-insensitive
+- [x] Tabs: open/close/switch, in-memory buffers, dirty markers
+- [x] Editing surface: shared `<textarea>` per buffer (+ Tab → indent)
+- [x] Save / Ctrl-S over IPC, dirty-state indicator in tab + status bar
+- [ ] Tab/session persistence between app restarts
 
 ## 0.3 — polish
 

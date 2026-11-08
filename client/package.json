@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Frontend for the MCode desktop app (Tauri webview). No build step — assets are served by Tauri directly from this directory."
+}

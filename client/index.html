@@ -10,15 +10,17 @@
     <div id="app">
       <aside id="sidebar" class="panel">
         <div class="panel-title">Explorer</div>
-        <div id="file-tree" class="file-tree">
-          <!-- populated by the file-explorer feature -->
-        </div>
+        <div id="file-tree" class="file-tree"></div>
       </aside>
 
       <main id="workspace" class="panel">
         <div id="tabs" class="tabs"></div>
-        <!-- plain text editing for now; gets replaced by the editor feature -->
-        <div id="editor" class="editor" contenteditable="true" spellcheck="false"></div>
+        <textarea
+          id="editor"
+          class="editor"
+          spellcheck="false"
+          placeholder="Open a file from the explorer to start editing"
+        ></textarea>
       </main>
 
       <footer id="status-bar">
