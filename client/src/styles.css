@@ -1,0 +1,85 @@
+/* MCode — base IDE shell styling. Intentionally minimal. */
+
+:root {
+  --bg-0: #16181d;
+  --bg-1: #1d2026;
+  --bg-2: #23262e;
+  --fg-0: #e8eaed;
+  --fg-dim: #9aa0a6;
+  --accent: #4f8cff;
+  --border: #2c303a;
+
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, 'Cascadia Mono', monospace;
+  font-size: 13px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--fg-0);
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 1fr auto;
+  height: 100vh;
+}
+
+#sidebar {
+  grid-column: 1;
+  grid-row: 1;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  overflow: auto;
+}
+
+#workspace {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-0);
+}
+
+#status-bar {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 10px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  color: var(--fg-dim);
+}
+
+.panel-title {
+  padding: 8px 12px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.file-tree { padding: 4px 12px; color: var(--fg-dim); }
+
+.tabs {
+  display: flex;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  min-height: 28px;
+}
+
+.editor {
+  flex: 1;
+  padding: 10px 14px;
+  outline: none;
+  white-space: pre-wrap;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  caret-color: var(--accent);
+}

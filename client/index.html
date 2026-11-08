@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MCode</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <aside id="sidebar" class="panel">
+        <div class="panel-title">Explorer</div>
+        <div id="file-tree" class="file-tree">
+          <!-- populated by the file-explorer feature -->
+        </div>
+      </aside>
+
+      <main id="workspace" class="panel">
+        <div id="tabs" class="tabs"></div>
+        <!-- plain text editing for now; gets replaced by the editor feature -->
+        <div id="editor" class="editor" contenteditable="true" spellcheck="false"></div>
+      </main>
+
+      <footer id="status-bar">
+        <span id="status-left">Starting…</span>
+        <span id="status-right"></span>
+      </footer>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

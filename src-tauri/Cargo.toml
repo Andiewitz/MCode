@@ -1,0 +1,18 @@
+[package]
+name = "mcode"
+version.workspace = true
+edition.workspace = true
+description = "MCode — a lightweight IDE built with Tauri"
+license.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde.workspace = true
+serde_json.workspace = true
+
+[lib]
+name = "mcode_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]

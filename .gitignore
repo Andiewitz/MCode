@@ -1,0 +1,21 @@
+# Rust / Cargo
+target/
+**/*.rs.bk
+*.pdb
+
+# Tauri codegen output
+src-tauri/gen/
+
+# Node / frontend tooling
+node_modules/
+dist/
+.vite/
+
+# Env & misc
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.log
+coverage/

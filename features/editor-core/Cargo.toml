@@ -1,0 +1,8 @@
+[package]
+name = "editor-core"
+version.workspace = true
+edition.workspace = true
+description = "Buffer model and text editing primitives for MCode"
+license.workspace = true
+
+[dependencies]
