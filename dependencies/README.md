@@ -12,12 +12,13 @@ documents *why* each dependency exists so they don't quietly accumulate.
 | `tauri-build`| 2.x     | Build-time codegen (context, permissions)  |
 | `serde`      | 1.x     | Serialize IPC command payloads             |
 | `serde_json` | 1.x     | JSON payloads over IPC                     |
+| `portable-pty` | 0.9   | Native PTY sessions for the terminal panel |
 
 ## Frontend
 
-None for now — `client/` is intentionally vanilla JS/CSS using the
-`window.__TAURI__` global API. Revisit (Vite, bundler, `@tauri-apps/api`)
-only when the UI outgrows it.
+`client/` is vanilla JS/CSS served into the webview (no bundler) using
+`window.__TAURI__` for IPC. Vendored UI deps: Monaco (`client/vendor/monaco`)
+and xterm.js (`client/vendor/xterm`). Revisit a bundler only if this outgrows it.
 
 ## Tooling
 

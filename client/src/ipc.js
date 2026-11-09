@@ -11,3 +11,10 @@ export function invoke(command, args = {}) {
   }
   return window.__TAURI__.core.invoke(command, args);
 }
+
+export function listen(event, handler) {
+  if (!ipcAvailable() || !window.__TAURI__?.event?.listen) {
+    return Promise.resolve(() => {});
+  }
+  return window.__TAURI__.event.listen(event, handler);
+}

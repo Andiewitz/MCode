@@ -12,6 +12,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde.workspace = true
 serde_json.workspace = true
+portable-pty = "0.9"
 file-explorer = { path = "../features/file-explorer" }
 
 [lib]

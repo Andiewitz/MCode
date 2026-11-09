@@ -6,6 +6,7 @@
     <meta name="color-scheme" content="dark" />
     <title>MCode</title>
     <link rel="stylesheet" href="./src/styles.css" />
+    <link rel="stylesheet" href="./vendor/xterm/xterm.css" />
     <link
       rel="stylesheet"
       data-name="vs/editor/editor.main"
@@ -15,8 +16,20 @@
   <body>
     <div id="app">
       <aside id="sidebar" class="panel">
-        <div class="panel-title">Explorer</div>
-        <div id="file-tree" class="file-tree" role="tree" aria-label="Project files"></div>
+        <nav id="activity-bar" aria-label="Sidebar views">
+          <button id="view-explorer" class="activity-btn active" type="button" title="Explorer" aria-label="Explorer"></button>
+          <button id="view-terminal" class="activity-btn" type="button" title="Terminal" aria-label="Terminal"></button>
+        </nav>
+        <div id="side-panel">
+          <div id="explorer-view" class="side-view">
+            <div class="panel-title">Explorer</div>
+            <div id="file-tree" class="file-tree" role="tree" aria-label="Project files"></div>
+          </div>
+          <div id="terminal-view" class="side-view hidden">
+            <div class="panel-title">Terminal</div>
+            <div id="terminal-host"></div>
+          </div>
+        </div>
       </aside>
 
       <div id="split-grip" role="separator" aria-orientation="vertical" tabindex="-1"></div>
@@ -57,6 +70,8 @@
       })();
     </script>
     <script src="./vendor/monaco/vs/loader.js"></script>
+    <script src="./vendor/xterm/xterm.js"></script>
+    <script src="./vendor/xterm/addon-fit.js"></script>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

@@ -88,11 +88,50 @@ body {
   grid-row: 1;
   background: var(--bg-1);
   border-right: 1px solid var(--border);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+}
+
+#activity-bar {
+  flex: 0 0 42px;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-1);
 }
+
+.activity-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-m);
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  transition: background-color 0.12s ease-out, color 0.12s ease-out;
+}
+.activity-btn:hover { background: var(--bg-2); color: var(--fg-0); }
+.activity-btn.active { color: var(--fg-0); background: var(--bg-2); box-shadow: inset 2px 0 0 var(--accent); }
+.activity-btn .icon { width: 18px; height: 18px; }
+
+#side-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.side-view { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+.side-view.hidden { display: none; }
 
 .panel-title {
   display: flex;
@@ -109,7 +148,18 @@ body {
   flex: 1;
   min-width: 0; /* as a flex item, let the tree shrink so rows clip instead of inflating */
   padding-bottom: var(--space-3);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+
+#terminal-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px 0 0 6px;
+  overflow: hidden;
+  background: var(--bg-0);
+}
+#terminal-host .xterm, #terminal-host .xterm-viewport { height: 100%; }
 
 .tree-entry { min-width: 0; }
 
