@@ -2,19 +2,29 @@ import { invoke, listen, ipcAvailable } from './ipc.js';
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[data-src="${src}"]`);
+    const existing = Array.from(document.scripts).find((s) => (s.dataset.src || s.getAttribute('src')) === src);
     if (existing) {
-      existing.addEventListener('load', resolve, { once: true });
-      existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
       if (existing.dataset.loaded === '1') return resolve();
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
       return;
     }
+    const prevDefine = window.define;
+    const prevAmd = prevDefine?.amd;
+    try { if (window.define) window.define.amd = false; } catch {}
     const s = document.createElement('script');
     s.src = src;
     s.async = false;
     s.dataset.src = src;
-    s.onload = () => { s.dataset.loaded = '1'; resolve(); };
-    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+    s.onload = () => {
+      s.dataset.loaded = '1';
+      try { if (prevDefine) { window.define = prevDefine; window.define.amd = prevAmd; } else { delete window.define; } } catch {}
+      resolve();
+    };
+    s.onerror = () => {
+      try { if (prevDefine) { window.define = prevDefine; window.define.amd = prevAmd; } else { delete window.define; } } catch {}
+      reject(new Error(`Failed to load ${src}`));
+    };
     document.head.appendChild(s);
   });
 }
@@ -22,21 +32,23 @@ function loadScript(src) {
 async function ensureXterm() {
   let Terminal = window.Terminal || globalThis.Terminal || self.Terminal;
   let FitAddon = window.FitAddon || globalThis.FitAddon || self.FitAddon;
-  if (!Terminal || !FitAddon) {
-    try {
-      await loadScript('./vendor/xterm/xterm.js');
-      await loadScript('./vendor/xterm/addon-fit.js');
-    } catch (e) {
-      // fall through to error below
-    }
-    Terminal = window.Terminal || globalThis.Terminal || self.Terminal || Terminal;
-    FitAddon = window.FitAddon || globalThis.FitAddon || self.FitAddon || FitAddon;
-  }
-  if (Terminal && typeof Terminal !== 'function' && Terminal.Terminal) Terminal = Terminal.Terminal;
-  if (FitAddon && typeof FitAddon !== 'function') FitAddon = FitAddon.FitAddon || FitAddon.default || FitAddon;
   if (!Terminal) {
-    const keys = ['Terminal', 'xterm', 'FitAddon'].filter((k) => window[k] != null).join(', ');
-    throw new Error(`xterm.js not available (Terminal global missing${keys ? `; globals: ${keys}` : ''})`);
+    try { await loadScript('./vendor/xterm/xterm.js'); } catch (e) {
+      const probe = Object.keys(globalThis).filter((k) => /Terminal|xterm/i.test(k)).slice(0, 8).join(', ');
+      throw new Error(`xterm.js failed to load (${e.message || e})${probe ? `; globals: ${probe}` : ''}`);
+    }
+    Terminal = window.Terminal || globalThis.Terminal || self.Terminal;
+  }
+  if (!FitAddon) {
+    try { await loadScript('./vendor/xterm/addon-fit.js'); } catch {}
+    FitAddon = window.FitAddon || globalThis.FitAddon || self.FitAddon;
+  }
+  if (Terminal && typeof Terminal !== 'function' && typeof Terminal.Terminal === 'function') Terminal = Terminal.Terminal;
+  if (FitAddon && typeof FitAddon !== 'function') FitAddon = FitAddon.FitAddon || FitAddon.default || FitAddon;
+  if (typeof Terminal !== 'function') {
+    const probe = Object.keys(globalThis).filter((k) => /Terminal|xterm|FitAddon/i.test(k)).slice(0, 10).join(', ');
+    const amd = !!(window.define && window.define.amd);
+    throw new Error(`xterm Terminal global missing${probe ? `; globals: ${probe}` : ''}; amd=${amd}; check ./vendor/xterm/xterm.js`);
   }
   return { Terminal, FitAddon };
 }
