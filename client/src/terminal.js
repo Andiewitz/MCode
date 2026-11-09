@@ -20,8 +20,8 @@ function loadScript(src) {
 }
 
 async function ensureXterm() {
-  let Terminal = window.Terminal || globalThis.Terminal;
-  let FitAddon = window.FitAddon || globalThis.FitAddon;
+  let Terminal = window.Terminal || globalThis.Terminal || self.Terminal;
+  let FitAddon = window.FitAddon || globalThis.FitAddon || self.FitAddon;
   if (!Terminal || !FitAddon) {
     try {
       await loadScript('./vendor/xterm/xterm.js');
@@ -29,14 +29,14 @@ async function ensureXterm() {
     } catch (e) {
       // fall through to error below
     }
-    Terminal = window.Terminal || globalThis.Terminal;
-    FitAddon = window.FitAddon || globalThis.FitAddon;
+    Terminal = window.Terminal || globalThis.Terminal || self.Terminal || Terminal;
+    FitAddon = window.FitAddon || globalThis.FitAddon || self.FitAddon || FitAddon;
   }
   if (Terminal && typeof Terminal !== 'function' && Terminal.Terminal) Terminal = Terminal.Terminal;
   if (FitAddon && typeof FitAddon !== 'function') FitAddon = FitAddon.FitAddon || FitAddon.default || FitAddon;
   if (!Terminal) {
-    const keys = Object.keys(window).filter((k) => /term/i.test(k)).join(', ');
-    throw new Error(`xterm.js not available (Terminal global missing${keys ? `; saw: ${keys}` : ''})`);
+    const keys = ['Terminal', 'xterm', 'FitAddon'].filter((k) => window[k] != null).join(', ');
+    throw new Error(`xterm.js not available (Terminal global missing${keys ? `; globals: ${keys}` : ''})`);
   }
   return { Terminal, FitAddon };
 }
