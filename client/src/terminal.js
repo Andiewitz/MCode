@@ -1,5 +1,46 @@
 import { invoke, listen, ipcAvailable } from './ipc.js';
 
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-src="${src}"]`);
+    if (existing) {
+      existing.addEventListener('load', resolve, { once: true });
+      existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
+      if (existing.dataset.loaded === '1') return resolve();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = false;
+    s.dataset.src = src;
+    s.onload = () => { s.dataset.loaded = '1'; resolve(); };
+    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureXterm() {
+  let Terminal = window.Terminal || globalThis.Terminal;
+  let FitAddon = window.FitAddon || globalThis.FitAddon;
+  if (!Terminal || !FitAddon) {
+    try {
+      await loadScript('./vendor/xterm/xterm.js');
+      await loadScript('./vendor/xterm/addon-fit.js');
+    } catch (e) {
+      // fall through to error below
+    }
+    Terminal = window.Terminal || globalThis.Terminal;
+    FitAddon = window.FitAddon || globalThis.FitAddon;
+  }
+  if (Terminal && typeof Terminal !== 'function' && Terminal.Terminal) Terminal = Terminal.Terminal;
+  if (FitAddon && typeof FitAddon !== 'function') FitAddon = FitAddon.FitAddon || FitAddon.default || FitAddon;
+  if (!Terminal) {
+    const keys = Object.keys(window).filter((k) => /term/i.test(k)).join(', ');
+    throw new Error(`xterm.js not available (Terminal global missing${keys ? `; saw: ${keys}` : ''})`);
+  }
+  return { Terminal, FitAddon };
+}
+
 export function createTerminal({ host, onStatus }) {
   let term = null;
   let fitAddon = null;
@@ -10,8 +51,7 @@ export function createTerminal({ host, onStatus }) {
 
   async function ensure() {
     if (term) return;
-    const Terminal = window.Terminal || globalThis.Terminal;
-    if (!Terminal) throw new Error('xterm.js not available');
+    const { Terminal, FitAddon } = await ensureXterm();
     term = new Terminal({
       cursorBlink: true,
       convertEol: false,
@@ -33,9 +73,8 @@ export function createTerminal({ host, onStatus }) {
         white: '#abb2bf',
       },
     });
-    const fitMod = window.FitAddon || globalThis.FitAddon;
-    const Fit = fitMod?.FitAddon || fitMod;
-    if (Fit) {
+    const Fit = FitAddon?.FitAddon || FitAddon;
+    if (typeof Fit === 'function') {
       fitAddon = new Fit();
       term.loadAddon(fitAddon);
     }
@@ -59,7 +98,8 @@ export function createTerminal({ host, onStatus }) {
   }
 
   function fit() {
-    if (!term || host.classList.contains('hidden')) return;
+    if (!term) return;
+    if (host.closest('.hidden')) return;
     try { fitAddon?.fit(); } catch {}
     if (sessionId != null) {
       invoke('terminal_resize', { id: sessionId, cols: term.cols, rows: term.rows }).catch(() => {});
@@ -95,6 +135,7 @@ export function createTerminal({ host, onStatus }) {
     try {
       await start(cwd);
     } catch (err) {
+      term?.writeln?.(`\r\n${err}`);
       onStatus?.(`Terminal error: ${err}`);
     }
     setTimeout(() => { fit(); term?.focus(); }, 0);
