@@ -90,7 +90,11 @@ export function createTerminal({ host, onStatus }) {
 
   async function show(cwd) {
     host.parentElement?.classList.remove('hidden');
-    await start(cwd);
+    try {
+      await start(cwd);
+    } catch (err) {
+      onStatus?.(`Terminal error: ${err}`);
+    }
     setTimeout(() => { fit(); term?.focus(); }, 0);
   }
 
