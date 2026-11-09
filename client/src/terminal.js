@@ -10,8 +10,9 @@ export function createTerminal({ host, onStatus }) {
 
   async function ensure() {
     if (term) return;
-    if (!window.Terminal) throw new Error('xterm.js not available');
-    term = new window.Terminal({
+    const Terminal = window.Terminal || globalThis.Terminal;
+    if (!Terminal) throw new Error('xterm.js not available');
+    term = new Terminal({
       cursorBlink: true,
       convertEol: false,
       fontFamily: "'JetBrains Mono', 'Fira Code', ui-monospace, 'Cascadia Mono', monospace",
@@ -32,7 +33,8 @@ export function createTerminal({ host, onStatus }) {
         white: '#abb2bf',
       },
     });
-    const Fit = window.FitAddon?.FitAddon || window.FitAddon;
+    const fitMod = window.FitAddon || globalThis.FitAddon;
+    const Fit = fitMod?.FitAddon || fitMod;
     if (Fit) {
       fitAddon = new Fit();
       term.loadAddon(fitAddon);
