@@ -23,7 +23,8 @@ Ordered, intentionally small steps — the IDE earns each feature.
       rail, floating side/editor/bottom islands, dark + light theme, accent
       picker) — reference: `redesign-islands/Main.dc.html`
 - [ ] Settings file, keybindings map
-- [ ] Window icons, `tauri build` bundling
+- [x] Window icons (`assets/icon.png` → `scripts/generate-icons.py`)
+- [ ] `tauri build` bundling
 
 ## 0.4 — power features
 

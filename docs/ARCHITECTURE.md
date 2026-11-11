@@ -46,8 +46,9 @@ of background services — one binary.
 
 ## Known scaffolding TODOs
 
-- Icons: `bundle.icon` is intentionally empty. Generate with
-  `cargo tauri icon assets/icon.png` once a logo exists (`tauri build` requires icons).
+- Icons: `assets/icon.png` (1024×1024) is the source; regenerate the bundled
+  set in `src-tauri/icons/` with `python3 scripts/generate-icons.py` (or
+  `cargo tauri icon assets/icon.png` if the Tauri CLI is installed).
 - Fonts are vendored as variable woff2 (`client/vendor/fonts/`, Inter +
   JetBrains Mono) so the UI renders identically offline.
 - The UI shell follows the "Islands" design reference in
