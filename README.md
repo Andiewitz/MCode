@@ -39,6 +39,19 @@ cargo tauri dev      # dev window with reload
 cargo tauri build    # installers / bundles
 ```
 
+## Updating the installed app
+
+The desktop launcher points at a binary inside this repo, so after code
+changes rebuild and re-point it with one command:
+
+```sh
+sh scripts/update-desktop-app.sh
+```
+
+This builds `target/release/mcode` (or a debug build with
+`MCODE_PROFILE=debug sh scripts/update-desktop-app.sh`) and updates
+`~/.local/share/applications/mcode.desktop`. Quit and relaunch MCode after.
+
 ## Tests
 
 ```sh
