@@ -13,6 +13,7 @@ documents *why* each dependency exists so they don't quietly accumulate.
 | `serde`      | 1.x     | Serialize IPC command payloads             |
 | `serde_json` | 1.x     | JSON payloads over IPC                     |
 | `portable-pty` | 0.9   | Native PTY sessions for the terminal panel |
+| `regex`      | 1.x     | Pattern search for the Search panel (`fs_search`) |
 
 ## Frontend
 

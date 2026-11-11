@@ -1,9 +1,10 @@
 // Explorer sidebar: lazily lists directories over Tauri IPC.
 // Dirs expand on click (or Enter/Space); files call back into the editor.
 // Rows carry depth-based indent, drawn icons, and ellipsis-truncated labels.
+// Git statuses (when provided) tint the label: added green, modified blue.
 
 import { invoke, ipcAvailable } from './ipc.js';
-import { chevronIcon, folderIcon, fileIcon } from './icons.js';
+import { chevronDownIcon, folderIcon, fileIcon } from './icons.js';
 
 function el(tag, className, textContent) {
   const node = document.createElement(tag);
@@ -18,8 +19,25 @@ function elFromHtml(tag, className, html) {
   return node;
 }
 
-function note(text) {
-  return el('div', 'tree-note', text);
+const EXT_KIND = {
+  ts: 'fi-blue', tsx: 'fi-blue', js: 'fi-blue', jsx: 'fi-blue',
+  mjs: 'fi-blue', cjs: 'fi-blue', mts: 'fi-blue', cts: 'fi-blue',
+  json: 'fi-amber', jsonc: 'fi-amber', toml: 'fi-amber', ini: 'fi-amber', lock: 'fi-amber',
+  rs: 'fi-amber', py: 'fi-green', rb: 'fi-red',
+  html: 'fi-p', htm: 'fi-p', xml: 'fi-p', svg: 'fi-p', css: 'fi-p', scss: 'fi-p', less: 'fi-p',
+  sh: 'fi-green', bash: 'fi-green', zsh: 'fi-green',
+  yml: 'fi-blue', yaml: 'fi-blue',
+};
+
+function kindForName(name = '') {
+  const ext = name.toLowerCase().includes('.') ? name.split('.').pop().toLowerCase() : '';
+  return EXT_KIND[ext] || '';
+}
+
+function note(text, depth = 0) {
+  const node = el('div', 'tree-note', text);
+  node.style.setProperty('--depth', String(depth));
+  return node;
 }
 
 function rowShell({ className, path, depth, label }) {
@@ -44,7 +62,10 @@ function rowShell({ className, path, depth, label }) {
 
 function fileNode(entry, onOpen, depth) {
   const row = rowShell({ className: 'tree-node file', path: entry.path, depth, label: entry.name });
-  row.appendChild(elFromHtml('span', 'icon', fileIcon));
+  row.appendChild(el('span', 'spacer12'));
+  const kind = kindForName(entry.name);
+  const icon = elFromHtml('span', `icon${kind ? ` ${kind}` : ''}`, fileIcon);
+  row.appendChild(icon);
   row.appendChild(el('span', 'label', entry.name));
   row.addEventListener('click', () => onOpen(entry));
   return row;
@@ -62,9 +83,11 @@ function dirNode(entry, onOpen, onStatus, depth) {
     label: entry.name,
   });
 
-  const caret = elFromHtml('span', 'caret', chevronIcon);
+  const caret = elFromHtml('span', 'caret', chevronDownIcon);
   row.appendChild(caret);
-  row.appendChild(elFromHtml('span', 'icon', folderIcon));
+  const icon = elFromHtml('span', 'icon', folderIcon);
+  if (!isRoot) icon.style.color = 'var(--text-dim)';
+  row.appendChild(icon);
   row.appendChild(el('span', 'label', entry.name));
 
   const children = el('div', 'tree-children hidden');
@@ -72,7 +95,7 @@ function dirNode(entry, onOpen, onStatus, depth) {
 
   async function expand() {
     if (!loaded) {
-      children.replaceChildren(note('loading…'));
+      children.replaceChildren(note('loading…', depth + 1));
       try {
         const entries = await invoke('fs_list_dir', { path: entry.path });
         const nodes = entries.map((child) =>
@@ -81,7 +104,7 @@ function dirNode(entry, onOpen, onStatus, depth) {
             : fileNode(child, onOpen, depth + 1)
         );
         if (nodes.length === 0) {
-          nodes.push(note('empty'));
+          nodes.push(note('empty', depth + 1));
         }
         children.replaceChildren(...nodes);
         loaded = true;
@@ -118,7 +141,7 @@ function dirNode(entry, onOpen, onStatus, depth) {
 /**
  * Fill `rootEl` with a tree rooted at the process working directory.
  * Calls `onStatus(message)` on failures, `onOpen(entry)` on file click.
- * Returns `{ setActiveFile(path) }` so the editor can drive the highlight.
+ * Returns `{ setActiveFile(path), setGitStatus(changes) }`.
  */
 export async function mountFileTree(rootEl, { onOpen, onStatus }) {
   rootEl.replaceChildren();
@@ -127,7 +150,23 @@ export async function mountFileTree(rootEl, { onOpen, onStatus }) {
     rootEl.appendChild(
       note('No Tauri IPC here — run the desktop app to browse files')
     );
-    return { setActiveFile() {} };
+    return { setActiveFile() {}, setGitStatus() {}, collapseAll() {} };
+  }
+
+  let gitByPath = null; // Map<absolute path, code>
+
+  function applyGitStatus() {
+    if (!gitByPath) return;
+    rootEl.querySelectorAll('.tree-node.file').forEach((row) => {
+      const code = gitByPath.get(row.dataset.path);
+      if (code) {
+        row.dataset.git = code;
+        row.title = `git: ${code}`;
+      } else {
+        delete row.dataset.git;
+        row.removeAttribute('title');
+      }
+    });
   }
 
   try {
@@ -155,6 +194,22 @@ export async function mountFileTree(rootEl, { onOpen, onStatus }) {
         target.classList.add('sel');
         target.scrollIntoView({ block: 'nearest' });
       }
+    },
+    collapseAll() {
+      rootEl.querySelectorAll('.tree-node.expanded').forEach((n) => n.click());
+    },
+    // changes: [{ code: 'M', path: 'relative/path' }] — matched by suffix
+    setGitStatus(changes) {
+      gitByPath = null;
+      if (changes && changes.length) {
+        gitByPath = new Map();
+        const rootPrefix = rootEl.querySelector('.tree-node.root')?.dataset.path ?? '';
+        for (const change of changes) {
+          const abs = `${rootPrefix}/${change.path}`;
+          gitByPath.set(abs, change.code);
+        }
+      }
+      applyGitStatus();
     },
   };
 }

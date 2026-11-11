@@ -4,7 +4,7 @@
 //! processes, and any feature crates wired in from `features/`.
 //! The client (`client/`) talks to this code through Tauri IPC (`invoke`).
 
-use file_explorer::DirEntry;
+use file_explorer::{DirEntry, SearchHit};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -41,7 +41,10 @@ pub fn run() {
             fs_list_dir,
             fs_read_text_file,
             fs_write_text_file,
+            fs_search,
             app_version,
+            git_status,
+            git_commit,
             terminal_create,
             terminal_write,
             terminal_resize,
@@ -78,6 +81,123 @@ fn fs_write_text_file(path: String, contents: String) -> Result<(), String> {
 #[tauri::command]
 fn app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[tauri::command]
+fn fs_search(
+    root: String,
+    query: String,
+    case_sensitive: Option<bool>,
+    whole_word: Option<bool>,
+    use_regex: Option<bool>,
+    limit: Option<usize>,
+) -> Result<Vec<SearchHit>, String> {
+    file_explorer::search_dir(
+        &root,
+        &query,
+        case_sensitive.unwrap_or(false),
+        whole_word.unwrap_or(false),
+        use_regex.unwrap_or(false),
+        limit.unwrap_or(200),
+    )
+}
+
+#[derive(Serialize, Clone)]
+struct GitChange {
+    code: String,
+    path: String,
+}
+
+#[derive(Serialize, Clone)]
+struct GitStatus {
+    branch: String,
+    changes: Vec<GitChange>,
+}
+
+fn resolve_root(root: Option<String>) -> Result<String, String> {
+    root.filter(|s| !s.trim().is_empty())
+        .map(Ok)
+        .unwrap_or_else(|| {
+            std::env::current_dir()
+                .map(|path| path.to_string_lossy().into_owned())
+                .map_err(|err| err.to_string())
+        })
+}
+
+fn run_git(root: &str, args: &[&str]) -> Result<String, String> {
+    let output = std::process::Command::new("git")
+        .args(args)
+        .current_dir(root)
+        .output()
+        .map_err(|err| format!("git unavailable: {err}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            format!("git {} failed", args.first().unwrap_or(&""))
+        } else {
+            stderr
+        });
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// `git status --porcelain=v1 -b`, parsed into branch + change rows.
+#[tauri::command]
+fn git_status(root: Option<String>) -> Result<GitStatus, String> {
+    let root = resolve_root(root)?;
+    let out = run_git(&root, &["status", "--porcelain=v1", "-b"])?;
+
+    let mut branch = String::new();
+    let mut changes = Vec::new();
+    for line in out.lines() {
+        if let Some(rest) = line.strip_prefix("## ") {
+            branch = rest.split("...").next().unwrap_or(rest).trim().to_string();
+            continue;
+        }
+        let bytes = line.as_bytes();
+        if bytes.len() < 4 {
+            continue;
+        }
+        let raw = &line[..2];
+        let code = match raw {
+            "??" => "?".to_string(),
+            _ => {
+                let first = raw.chars().find(|c| !c.is_whitespace()).unwrap_or('M');
+                match first {
+                    'R' | 'C' => 'M',
+                    other => other,
+                }
+                .to_string()
+            }
+        };
+        let mut path = line[3..].to_string();
+        if let Some(rename) = path.rsplit_once(" -> ") {
+            path = rename.1.to_string();
+        }
+        changes.push(GitChange { code, path });
+    }
+    if branch.is_empty() {
+        branch = "(no branch)".to_string();
+    }
+    Ok(GitStatus { branch, changes })
+}
+
+/// Stage everything and commit with `message` (git CLI under the hood).
+#[tauri::command]
+fn git_commit(root: Option<String>, message: String) -> Result<String, String> {
+    let root = resolve_root(root)?;
+    let message = message.trim();
+    if message.is_empty() {
+        return Err("commit message is empty".to_string());
+    }
+    run_git(&root, &["add", "-A"])?;
+    let out = run_git(&root, &["commit", "-m", message])?;
+    Ok(out
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or("committed")
+        .trim()
+        .to_string())
 }
 
 #[tauri::command]

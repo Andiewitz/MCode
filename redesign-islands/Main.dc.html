@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MCode</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+*,*::before,*::after{box-sizing:border-box}
+[data-theme="dark"]{
+  --frame:#2C2E32;--island:#1E1F22;--island-2:#26282C;
+  --text:#BCBEC4;--text-strong:#F2F3F5;--text-dim:#8A8D94;
+  --hover:rgba(255,255,255,.06);--sel:rgba(255,255,255,.10);--line:rgba(255,255,255,.08);--line-hi:rgba(255,255,255,.04);
+  --accent-soft:color-mix(in srgb,var(--accent) 22%,transparent);
+  --blue:#6E9CFF;--green:#6FC27A;--amber:#E5B567;--red:#F07178;
+  --k:#CF8E6D;--s:#6AAB73;--n:#2AACB8;--f:#56A8F5;--c:#858A92;--p:#C77DBB;
+}
+[data-theme="light"]{
+  --frame:#E4E6EB;--island:#FFFFFF;--island-2:#F4F5F7;
+  --text:#2B2D30;--text-strong:#0F1012;--text-dim:#6C707E;
+  --hover:rgba(0,0,0,.05);--sel:rgba(0,0,0,.08);--line:rgba(0,0,0,.09);--line-hi:rgba(0,0,0,.035);
+  --accent-soft:color-mix(in srgb,var(--accent) 14%,transparent);
+  --blue:#1E58D8;--green:#1F7A2E;--amber:#9A6A00;--red:#C7302C;
+  --k:#0033B3;--s:#067D17;--n:#1750EB;--f:#00627A;--c:#6B6E76;--p:#871094;
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-align:left}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+svg{flex:none}
+.ib{width:24px;height:24px;border-radius:6px;color:var(--text-dim)}
+.ib:hover{background:var(--hover);color:var(--text-strong)}
+.rb{width:36px;height:36px;border-radius:10px;color:var(--text-dim);position:relative}
+.rb:hover{background:var(--hover);color:var(--text-strong)}
+.rb.on{background:var(--accent-soft);color:var(--text-strong)}
+.wg{height:28px;padding:0 8px;border-radius:8px;gap:6px;color:var(--text)}
+.wg:hover{background:var(--hover)}
+.bt{height:28px;padding:0 10px;border-radius:8px;gap:6px;color:var(--text-dim)}
+.bt:hover{background:var(--hover);color:var(--text-strong)}
+.bt.on{background:var(--accent-soft);color:var(--text-strong)}
+.hd{height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 14px}
+.ttl{font-size:13px;font-weight:600;color:var(--text-strong)}
+.lbl{font-size:12px;color:var(--text-dim)}
+.row{width:100%;height:26px;display:flex;align-items:center;justify-content:flex-start;gap:6px;border-radius:6px;padding-right:8px;color:var(--text);white-space:nowrap}
+.row:hover{background:var(--hover)}
+.row.sel{background:var(--accent-soft);color:var(--text-strong)}
+.inp{width:100%;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--island-2);color:var(--text);padding:0 10px;font:inherit}
+.inp::placeholder{color:var(--text-dim)}
+.chip{height:24px;min-width:28px;padding:0 8px;border-radius:6px;color:var(--text-dim);font-size:12px}
+.chip:hover{background:var(--hover);color:var(--text-strong)}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+.ln{display:flex;align-items:center;height:20px;position:relative}
+.ln.cur{background:var(--line-hi)}
+.no{width:48px;flex:none;text-align:right;padding-right:16px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.ln.cur .no{color:var(--text)}
+.cd{flex:1;white-space:pre;color:var(--text)}
+.bar{position:absolute;left:5px;top:1px;bottom:1px;width:3px;border-radius:2px}
+.bar.a{background:var(--green)}
+.bar.m{background:var(--blue)}
+.k{color:var(--k)}.s{color:var(--s)}.n{color:var(--n)}.f{color:var(--f)}.p{color:var(--p)}
+.c{color:var(--c);font-style:italic}
+.tg{color:var(--green)}.tb{color:var(--blue)}.td{color:var(--text-dim)}
+.tl{white-space:pre;min-height:20px}
+.hit{background:color-mix(in srgb,var(--amber) 30%,transparent);color:var(--text-strong);border-radius:3px;padding:0 1px}
+</style>
+</helmet>
+
+<div data-theme="{{theme}}" style="--accent: {{accent}}; width:100%; height:900px; display:flex; flex-direction:column; background:var(--frame); color:var(--text); font-family:'Inter',system-ui,sans-serif; font-size:13px; line-height:1.4; overflow:hidden">
+
+  <!-- window header -->
+  <div style="height:40px;flex:none;display:flex;align-items:center;gap:6px;padding:0 10px 0 8px">
+    <button class="ib" style="width:32px;height:32px;border-radius:8px" aria-label="Main menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+    </button>
+    <button class="wg" aria-label="Project: MCode">
+      <span style="width:18px;height:18px;border-radius:5px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">M</span>
+      <span style="font-weight:600;color:var(--text-strong)">MCode</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </button>
+    <button class="wg" aria-label="Branch: main">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5.5" r="2.2"></circle><circle cx="6" cy="18.5" r="2.2"></circle><circle cx="18" cy="8.5" r="2.2"></circle><path d="M6 7.7v8.6M18 10.7c0 4.4-4 4.2-8 5.3-1.6.4-3 .9-4 1.8"></path></svg>
+      <span>main</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </button>
+    <div style="flex:1"></div>
+    <button class="wg" aria-label="Run dev">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7V5z"></path></svg>
+      <span>dev</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </button>
+    <button class="ib" style="width:32px;height:32px;border-radius:8px" aria-label="Search everywhere">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+    </button>
+  </div>
+
+  <!-- body -->
+  <div style="flex:1;min-height:0;display:flex;gap:4px;padding:0 4px 0 0">
+
+    <!-- left rail -->
+    <div style="width:44px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0 8px">
+      <button class="rb {{filesCls}}" onClick="{{pickFiles}}" aria-label="Files" aria-pressed="{{filesOn}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg>
+      </button>
+      <button class="rb {{searchCls}}" onClick="{{pickSearch}}" aria-label="Search" aria-pressed="{{searchOn}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+      </button>
+      <button class="rb {{gitCls}}" onClick="{{pickGit}}" aria-label="Git, 3 changes" aria-pressed="{{gitOn}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5.5" r="2.2"></circle><circle cx="6" cy="18.5" r="2.2"></circle><circle cx="18" cy="8.5" r="2.2"></circle><path d="M6 7.7v8.6M18 10.7c0 4.4-4 4.2-8 5.3-1.6.4-3 .9-4 1.8"></path></svg>
+        <span style="position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--frame)"></span>
+      </button>
+      <button class="rb {{runCls}}" onClick="{{pickRun}}" aria-label="Run and debug" aria-pressed="{{runOn}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7V5z"></path></svg>
+      </button>
+      <button class="rb {{plugCls}}" onClick="{{pickPlug}}" aria-label="Plugins" aria-pressed="{{plugOn}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><path d="M16.5 13v7M13 16.5h7"></path></svg>
+      </button>
+      <div style="width:20px;height:1px;background:var(--line);margin:6px 0"></div>
+      <button class="rb {{termCls}}" onClick="{{pickTerm}}" aria-label="Terminal" aria-pressed="{{termOn}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect><path d="M7 10l3 2.5L7 15M12.5 15H17"></path></svg>
+      </button>
+      <button class="rb {{probCls}}" onClick="{{pickProb}}" aria-label="Problems, 2" aria-pressed="{{probOn}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5l9 15.5H3l9-15.5z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+        <span style="position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 2px var(--frame)"></span>
+      </button>
+      <div style="flex:1"></div>
+      <button class="rb" aria-label="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h9M18 7h1M5 17h1M10 17h9"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg>
+      </button>
+    </div>
+
+    <!-- side island -->
+    <sc-if value="{{sideOpen}}" hint-placeholder-val="{{ true }}">
+    <div style="width:264px;flex:none;background:var(--island);border-radius:10px;display:flex;flex-direction:column;min-height:0;overflow:hidden">
+
+      <sc-if value="{{showFiles}}" hint-placeholder-val="{{ true }}">
+      <div class="hd">
+        <span class="ttl">Files</span>
+        <div style="display:flex;gap:2px">
+          <button class="ib" aria-label="New file"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M12 11v6M9 14h6"></path></svg></button>
+          <button class="ib" aria-label="Collapse all"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg></button>
+          <button class="ib" aria-label="More actions"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:1px;padding:2px 6px 8px">
+        <button class="row" style="padding-left:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg><span style="font-weight:600;color:var(--text-strong)">MCode</span></button>
+        <button class="row" style="padding-left:22px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg><span>src</span></button>
+        <button class="row" style="padding-left:38px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg><span>editor</span></button>
+        <button class="row sel" style="padding-left:54px"><span style="width:12px"></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span style="color:var(--blue)">MonacoHost.ts</span></button>
+        <button class="row" style="padding-left:54px"><span style="width:12px"></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span style="color:var(--green)">theme.ts</span></button>
+        <button class="row" style="padding-left:54px"><span style="width:12px"></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span>commands.ts</span></button>
+        <button class="row" style="padding-left:38px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg><span>workbench</span></button>
+        <button class="row" style="padding-left:38px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg><span>git</span></button>
+        <button class="row" style="padding-left:38px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg><span>terminal</span></button>
+        <button class="row" style="padding-left:38px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg><span>plugins</span></button>
+        <button class="row" style="padding-left:22px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg><span>resources</span></button>
+        <button class="row" style="padding-left:22px"><span style="width:12px"></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span style="color:var(--blue)">package.json</span></button>
+        <button class="row" style="padding-left:22px"><span style="width:12px"></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span>tsconfig.json</span></button>
+        <button class="row" style="padding-left:22px"><span style="width:12px"></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span>vite.config.ts</span></button>
+        <button class="row" style="padding-left:22px"><span style="width:12px"></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span>README.md</span></button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{showSearch}}" hint-placeholder-val="{{ false }}">
+      <div class="hd">
+        <span class="ttl">Search</span>
+        <div style="display:flex;gap:2px">
+          <button class="ib" aria-label="Clear results"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        </div>
+      </div>
+      <div style="padding:0 10px 8px;display:flex;flex-direction:column;gap:8px">
+        <input class="inp" type="text" placeholder="Search in files" aria-label="Search in files">
+        <div style="display:flex;gap:2px">
+          <button class="chip mono" aria-label="Match case">Aa</button>
+          <button class="chip mono" aria-label="Whole word">ab</button>
+          <button class="chip mono" aria-label="Regular expression">.*</button>
+        </div>
+      </div>
+      <div style="padding:6px 14px 4px" class="lbl">Recent</div>
+      <div style="padding:0 6px;display:flex;flex-direction:column;gap:1px">
+        <button class="row" style="padding-left:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg><span class="mono" style="font-size:12px">defineTheme</span></button>
+        <button class="row" style="padding-left:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg><span class="mono" style="font-size:12px">mountEditor</span></button>
+        <button class="row" style="padding-left:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg><span class="mono" style="font-size:12px">showFoldingControls</span></button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{showGit}}" hint-placeholder-val="{{ false }}">
+      <div class="hd">
+        <span class="ttl">Git</span>
+        <div style="display:flex;gap:2px">
+          <button class="ib" aria-label="Refresh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"></path></svg></button>
+          <button class="ib" aria-label="More actions"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+        </div>
+      </div>
+      <div style="padding:0 10px 10px;display:flex;flex-direction:column;gap:8px">
+        <input class="inp" type="text" placeholder="Commit message" aria-label="Commit message">
+        <button style="height:30px;border-radius:8px;background:var(--accent);color:#fff;font-weight:500;width:100%">Commit 3 files</button>
+      </div>
+      <div style="padding:4px 14px" class="lbl">Changes</div>
+      <div style="padding:0 6px;display:flex;flex-direction:column;gap:1px">
+        <button class="row" style="padding-left:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span>MonacoHost.ts</span><span class="lbl">src/editor</span><span style="flex:1"></span><span style="color:var(--blue);font-weight:600;font-size:12px">M</span></button>
+        <button class="row" style="padding-left:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span>theme.ts</span><span class="lbl">src/editor</span><span style="flex:1"></span><span style="color:var(--green);font-weight:600;font-size:12px">A</span></button>
+        <button class="row" style="padding-left:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg><span>package.json</span><span style="flex:1"></span><span style="color:var(--blue);font-weight:600;font-size:12px">M</span></button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{showRun}}" hint-placeholder-val="{{ false }}">
+      <div class="hd">
+        <span class="ttl">Run</span>
+        <div style="display:flex;gap:2px">
+          <button class="ib" aria-label="Add configuration"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+        </div>
+      </div>
+      <div style="padding:2px 6px;display:flex;flex-direction:column;gap:1px">
+        <button class="row" style="padding-left:8px;height:30px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7V5z"></path></svg><span style="color:var(--text-strong)">dev</span><span style="flex:1"></span><span class="lbl">running</span><span style="width:7px;height:7px;border-radius:50%;background:var(--green)"></span></button>
+        <button class="row" style="padding-left:8px;height:30px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7V5z"></path></svg><span>build</span></button>
+        <button class="row" style="padding-left:8px;height:30px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7V5z"></path></svg><span>test</span></button>
+        <button class="row" style="padding-left:8px;height:30px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7V5z"></path></svg><span>package</span></button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{showPlug}}" hint-placeholder-val="{{ false }}">
+      <div class="hd">
+        <span class="ttl">Plugins</span>
+      </div>
+      <div style="padding:0 10px 8px">
+        <input class="inp" type="text" placeholder="Search plugins" aria-label="Search plugins">
+      </div>
+      <div style="padding:4px 14px" class="lbl">Installed</div>
+      <div style="padding:0 6px;display:flex;flex-direction:column;gap:2px">
+        <button class="row" style="height:52px;padding:0 8px;gap:10px">
+          <span style="width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--blue) 18%,transparent);display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4C6 4 6 7 6 9s-1 3-3 3c2 0 3 1 3 3s0 5 3 5M15 4c3 0 3 3 3 5s1 3 3 3c-2 0-3 1-3 3s0 5-3 5"></path></svg></span>
+          <span style="display:flex;flex-direction:column;min-width:0"><span style="color:var(--text-strong);font-weight:500">Bracket Colors</span><span class="lbl" style="overflow:hidden;text-overflow:ellipsis">Pairs matching brackets by depth</span></span>
+        </button>
+        <button class="row" style="height:52px;padding:0 8px;gap:10px">
+          <span style="width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--green) 18%,transparent);display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M7 15V9l3 3 3-3v6M17 9v6"></path></svg></span>
+          <span style="display:flex;flex-direction:column;min-width:0"><span style="color:var(--text-strong);font-weight:500">Markdown Preview</span><span class="lbl" style="overflow:hidden;text-overflow:ellipsis">Live preview beside the editor</span></span>
+        </button>
+        <button class="row" style="height:52px;padding:0 8px;gap:10px">
+          <span style="width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--amber) 18%,transparent);display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"></path><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"></path></svg></span>
+          <span style="display:flex;flex-direction:column;min-width:0"><span style="color:var(--text-strong);font-weight:500">Container Tools</span><span class="lbl" style="overflow:hidden;text-overflow:ellipsis">Manage containers from the sidebar</span></span>
+        </button>
+      </div>
+      </sc-if>
+
+    </div>
+    </sc-if>
+
+    <!-- main column -->
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+
+      <!-- editor island -->
+      <div style="flex:1;min-height:0;background:var(--island);border-radius:10px;display:flex;flex-direction:column;overflow:hidden">
+        <div style="height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px">
+          <div style="display:flex;gap:2px">
+            <div style="position:relative;height:28px;padding:0 8px 0 10px;border-radius:8px;display:flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--text-strong);font-weight:500">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg>
+              <span>MonacoHost.ts</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+              <span style="position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:2px;background:var(--accent)"></span>
+            </div>
+            <div style="height:28px;padding:0 10px;border-radius:8px;display:flex;align-items:center;gap:8px;color:var(--text-dim)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg>
+              <span>theme.ts</span>
+            </div>
+            <div style="height:28px;padding:0 10px;border-radius:8px;display:flex;align-items:center;gap:8px;color:var(--text-dim)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg>
+              <span>commands.ts</span>
+            </div>
+            <div style="height:28px;padding:0 10px;border-radius:8px;display:flex;align-items:center;gap:8px;color:var(--text-dim)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path></svg>
+              <span>package.json</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:2px">
+            <button class="ib" aria-label="Split editor"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M12 4.5v15"></path></svg></button>
+            <button class="ib" aria-label="More actions"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+          </div>
+        </div>
+
+        <div class="mono" style="flex:1;min-height:0;position:relative;padding:6px 0 0;overflow:hidden;font-size:13px;line-height:20px">
+          <div class="ln"><span class="no">1</span><span class="cd"><span class="k">import</span> * <span class="k">as</span> monaco <span class="k">from</span> <span class="s">'monaco-editor'</span>;</span></div>
+          <div class="ln"><span class="no">2</span><span class="cd"><span class="k">import</span> { islandsDark, islandsLight } <span class="k">from</span> <span class="s">'./theme'</span>;</span></div>
+          <div class="ln"><span class="no">3</span><span class="cd"></span></div>
+          <div class="ln"><span class="no">4</span><span class="cd"><span class="k">const</span> options: monaco.editor.IStandaloneEditorConstructionOptions = {</span></div>
+          <div class="ln"><span class="no">5</span><span class="cd">  <span class="p">fontFamily</span>: <span class="s">'JetBrains Mono, monospace'</span>,</span></div>
+          <div class="ln"><span class="no">6</span><span class="cd">  <span class="p">fontSize</span>: <span class="n">13</span>,</span></div>
+          <div class="ln"><span class="no">7</span><span class="cd">  <span class="p">minimap</span>: { <span class="p">enabled</span>: <span class="k">false</span> },</span></div>
+          <div class="ln"><span class="no">8</span><span class="cd">  <span class="p">padding</span>: { <span class="p">top</span>: <span class="n">12</span>, <span class="p">bottom</span>: <span class="n">12</span> },</span></div>
+          <div class="ln cur"><span class="bar m"></span><span class="no">9</span><span class="cd">  <span class="p">showFoldingControls</span>: <span class="s">'mouseover'</span>,<span style="display:inline-block;width:1.5px;height:15px;background:var(--text-strong);vertical-align:middle"></span><span style="margin-left:28px;font-family:'Inter',system-ui,sans-serif;font-size:12px;color:var(--text-dim)">You, 2 hours ago  ·  tweak folding</span></span></div>
+          <div class="ln"><span class="no">10</span><span class="cd">  <span class="p">scrollBeyondLastLine</span>: <span class="k">false</span>,</span></div>
+          <div class="ln"><span class="no">11</span><span class="cd">};</span></div>
+          <div class="ln"><span class="no">12</span><span class="cd"></span></div>
+          <div class="ln"><span class="no">13</span><span class="cd"><span class="c">/** Mounts Monaco inside an island and wires up theming. */</span></span></div>
+          <div class="ln"><span class="no">14</span><span class="cd"><span class="k">export</span> <span class="k">function</span> <span class="f">mountEditor</span>(host: HTMLElement) {</span></div>
+          <div class="ln"><span class="bar a"></span><span class="no">15</span><span class="cd">  monaco.editor.<span class="f">defineTheme</span>(<span class="s">'mcode-dark'</span>, islandsDark);</span></div>
+          <div class="ln"><span class="bar a"></span><span class="no">16</span><span class="cd">  monaco.editor.<span class="f">defineTheme</span>(<span class="s">'mcode-light'</span>, islandsLight);</span></div>
+          <div class="ln"><span class="no">17</span><span class="cd"></span></div>
+          <div class="ln"><span class="no">18</span><span class="cd">  <span class="k">const</span> editor = monaco.editor.<span class="f">create</span>(host, {</span></div>
+          <div class="ln"><span class="no">19</span><span class="cd">    ...options,</span></div>
+          <div class="ln"><span class="no">20</span><span class="cd">    <span class="p">language</span>: <span class="s">'typescript'</span>,</span></div>
+          <div class="ln"><span class="no">21</span><span class="cd">    <span class="p">theme</span>: <span class="s">'mcode-dark'</span>,</span></div>
+          <div class="ln"><span class="no">22</span><span class="cd">  });</span></div>
+          <div class="ln"><span class="no">23</span><span class="cd"></span></div>
+          <div class="ln"><span class="no">24</span><span class="cd">  <span class="k">return</span> editor;</span></div>
+          <div class="ln"><span class="no">25</span><span class="cd">}</span></div>
+          <div style="position:absolute;right:4px;top:10px;width:8px;height:180px;border-radius:4px;background:var(--sel)"></div>
+        </div>
+      </div>
+
+      <!-- bottom island -->
+      <sc-if value="{{bottomOpen}}" hint-placeholder-val="{{ true }}">
+      <div style="height:236px;flex:none;background:var(--island);border-radius:10px;display:flex;flex-direction:column;overflow:hidden">
+        <div style="height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px">
+          <div style="display:flex;gap:2px">
+            <button class="bt {{termCls}}" onClick="{{tabTerm}}">Terminal</button>
+            <button class="bt {{probCls}}" onClick="{{tabProb}}">Problems <span style="min-width:16px;height:16px;padding:0 5px;border-radius:8px;background:var(--sel);font-size:11px;display:inline-flex;align-items:center;justify-content:center;color:var(--text)">2</span></button>
+            <button class="bt {{outCls}}" onClick="{{tabOut}}">Output</button>
+          </div>
+          <div style="display:flex;gap:2px">
+            <button class="ib" aria-label="New terminal"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+            <button class="ib" onClick="{{closeBottom}}" aria-label="Close panel"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+        </div>
+
+        <sc-if value="{{showTerm}}" hint-placeholder-val="{{ true }}">
+        <div class="mono" style="flex:1;min-height:0;overflow:auto;padding:2px 20px 12px;font-size:12.5px;line-height:20px">
+          <div class="tl"><span class="tb">~/mcode</span> <span class="td">on</span> <span class="tg">main</span> <span class="td">*3</span></div>
+          <div class="tl"><span class="td">$</span> npm run dev</div>
+          <div class="tl td">&gt; mcode@0.4.0 dev</div>
+          <div class="tl td">&gt; vite</div>
+          <div class="tl"> </div>
+          <div class="tl">  ready in <span class="tg">412 ms</span></div>
+          <div class="tl">  <span class="td">→</span>  Local:   <span class="tb">http://localhost:5173/</span></div>
+          <div class="tl"><span class="td">$</span> <span style="display:inline-block;width:7px;height:15px;background:var(--text);vertical-align:middle"></span></div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{showProb}}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;min-height:0;overflow:auto;padding:2px 8px 8px;display:flex;flex-direction:column;gap:1px">
+          <button class="row" style="height:30px;padding:0 10px;gap:10px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5l9 15.5H3l9-15.5z"></path><path d="M12 10v4M12 17v.01"></path></svg><span>'themeKind' is declared but its value is never read.</span><span style="flex:1"></span><span class="lbl">theme.ts 12:7</span></button>
+          <button class="row" style="height:30px;padding:0 10px;gap:10px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"></path></svg><span>Type 'string' is not assignable to type 'number'.</span><span style="flex:1"></span><span class="lbl">commands.ts 44:12</span></button>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{showOut}}" hint-placeholder-val="{{ false }}">
+        <div class="mono" style="flex:1;min-height:0;overflow:auto;padding:2px 20px 12px;font-size:12.5px;line-height:20px">
+          <div class="tl td">[12:04:09] monaco workers ready</div>
+          <div class="tl td">[12:04:11] theme "mcode-dark" registered</div>
+          <div class="tl td">[12:04:11] watching 142 files</div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <!-- status bar -->
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 12px;font-size:12px;color:var(--text)">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span>MCode</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      <span>src</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      <span>editor</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      <span style="color:var(--text-strong);font-weight:500">MonacoHost.ts</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:18px">
+      <span>Ln 9, Col 36</span>
+      <span>Spaces: 2</span>
+      <span>UTF-8</span>
+      <span>LF</span>
+      <span>TypeScript</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"accent":{"editor":"color","default":"#2F6BEB","options":["#2F6BEB","#7C5CFF","#E5731F","#1FA37A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  cur() {
+    const s = this.state || {};
+    return {
+      tool: s.tool === undefined ? 'files' : s.tool,
+      bottom: s.bottom === undefined ? 'terminal' : s.bottom
+    };
+  }
+  renderVals() {
+    const { tool, bottom } = this.cur();
+    const t = (k) => () => { const c = this.cur().tool; this.setState({ tool: c === k ? '' : k }); };
+    const b = (k) => () => { const c = this.cur().bottom; this.setState({ bottom: c === k ? '' : k }); };
+    const sb = (k) => () => this.setState({ bottom: k });
+    const on = (v) => (v ? 'on' : '');
+    return {
+      theme: this.props.theme === 'light' ? 'light' : 'dark',
+      accent: this.props.accent ?? '#2F6BEB',
+      sideOpen: tool !== '',
+      showFiles: tool === 'files',
+      showSearch: tool === 'search',
+      showGit: tool === 'git',
+      showRun: tool === 'run',
+      showPlug: tool === 'plugins',
+      bottomOpen: bottom !== '',
+      showTerm: bottom === 'terminal',
+      showProb: bottom === 'problems',
+      showOut: bottom === 'output',
+      filesCls: on(tool === 'files'),
+      searchCls: on(tool === 'search'),
+      gitCls: on(tool === 'git'),
+      runCls: on(tool === 'run'),
+      plugCls: on(tool === 'plugins'),
+      termCls: on(bottom === 'terminal'),
+      probCls: on(bottom === 'problems'),
+      outCls: on(bottom === 'output'),
+      filesOn: tool === 'files',
+      searchOn: tool === 'search',
+      gitOn: tool === 'git',
+      runOn: tool === 'run',
+      plugOn: tool === 'plugins',
+      termOn: bottom === 'terminal',
+      probOn: bottom === 'problems',
+      pickFiles: t('files'),
+      pickSearch: t('search'),
+      pickGit: t('git'),
+      pickRun: t('run'),
+      pickPlug: t('plugins'),
+      pickTerm: b('terminal'),
+      pickProb: b('problems'),
+      tabTerm: sb('terminal'),
+      tabProb: sb('problems'),
+      tabOut: sb('output'),
+      closeBottom: () => this.setState({ bottom: '' })
+    };
+  }
+}
+</script>
+</body>
+</html>

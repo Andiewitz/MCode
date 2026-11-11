@@ -13,49 +13,188 @@
       href="./vendor/monaco/vs/editor/editor.main.css"
     />
   </head>
-  <body>
+  <body data-theme="dark">
     <div id="app">
-      <aside id="sidebar" class="panel">
-        <nav id="activity-bar" aria-label="Sidebar views">
-          <button id="view-explorer" class="activity-btn active" type="button" title="Explorer" aria-label="Explorer"></button>
-          <button id="view-terminal" class="activity-btn" type="button" title="Terminal" aria-label="Terminal"></button>
+      <!-- window header -->
+      <header id="win-header">
+        <button id="menu-btn" class="ib ib-lg" type="button" aria-label="Main menu" aria-haspopup="menu" aria-expanded="false"></button>
+        <button id="project-chip" class="wg" type="button" aria-label="Project: MCode">
+          <span class="logo" aria-hidden="true">M</span>
+          <span class="wg-strong">MCode</span>
+        </button>
+        <button id="branch-chip" class="wg" type="button" aria-label="Branch" title="Show git panel">
+          <span class="wg-icon" id="branch-icon"></span>
+          <span id="branch-name">…</span>
+        </button>
+        <div class="header-spacer"></div>
+        <button id="run-chip" class="wg" type="button" aria-label="Run dev" title="Run the dev preset in the terminal">
+          <span class="wg-icon accent" id="run-icon"></span>
+          <span>dev</span>
+          <span class="wg-icon" id="run-caret"></span>
+        </button>
+        <button id="header-search-btn" class="ib ib-lg" type="button" aria-label="Search everywhere" title="Search (Ctrl+Shift+F)"></button>
+      </header>
+
+      <!-- body -->
+      <div id="body">
+        <!-- left rail -->
+        <nav id="rail" aria-label="Panels">
+          <button id="tool-files" class="rb" type="button" aria-label="Files" aria-pressed="false"></button>
+          <button id="tool-search" class="rb" type="button" aria-label="Search" aria-pressed="false"></button>
+          <button id="tool-git" class="rb" type="button" aria-label="Git" aria-pressed="false">
+            <span class="rb-dot accent hidden" id="git-dot"></span>
+          </button>
+          <button id="tool-run" class="rb" type="button" aria-label="Run and debug" aria-pressed="false"></button>
+          <button id="tool-plugins" class="rb" type="button" aria-label="Plugins" aria-pressed="false"></button>
+          <div class="rail-sep" role="presentation"></div>
+          <button id="tool-terminal" class="rb" type="button" aria-label="Terminal" aria-pressed="false"></button>
+          <button id="tool-problems" class="rb" type="button" aria-label="Problems" aria-pressed="false">
+            <span class="rb-dot amber hidden" id="prob-dot"></span>
+          </button>
+          <div class="rail-spacer"></div>
+          <button id="tool-settings" class="rb" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"></button>
         </nav>
-        <div id="side-panel">
-          <div id="explorer-view" class="side-view">
-            <div class="panel-title">Explorer</div>
+
+        <!-- side island -->
+        <aside id="side" class="island" aria-label="Side panel">
+          <section id="view-files" class="side-view">
+            <div class="hd">
+              <span class="ttl">Files</span>
+              <div class="hd-actions">
+                <button id="tree-new-file" class="ib" type="button" aria-label="New file"></button>
+                <button id="tree-collapse" class="ib" type="button" aria-label="Collapse all"></button>
+              </div>
+            </div>
             <div id="file-tree" class="file-tree" role="tree" aria-label="Project files"></div>
-          </div>
-          <div id="terminal-view" class="side-view hidden">
-            <div class="panel-title">Terminal</div>
-            <div id="terminal-host"></div>
-          </div>
+          </section>
+
+          <section id="view-search" class="side-view hidden">
+            <div class="hd">
+              <span class="ttl">Search</span>
+              <div class="hd-actions">
+                <button id="search-clear" class="ib" type="button" aria-label="Clear results"></button>
+              </div>
+            </div>
+            <div class="search-body">
+              <input id="search-input" class="inp" type="text" placeholder="Search in files" aria-label="Search in files" autocomplete="off" spellcheck="false" />
+              <div class="search-chips" role="group" aria-label="Search options">
+                <button id="search-case" class="chip mono" type="button" aria-label="Match case" aria-pressed="false">Aa</button>
+                <button id="search-word" class="chip mono" type="button" aria-label="Whole word" aria-pressed="false">ab</button>
+                <button id="search-regex" class="chip mono" type="button" aria-label="Regular expression" aria-pressed="false">.*</button>
+              </div>
+            </div>
+            <div id="search-recent-wrap" class="hidden">
+              <div class="lbl list-label">Recent</div>
+              <div id="search-recent" class="list"></div>
+            </div>
+            <div id="search-results" class="list grow"></div>
+          </section>
+
+          <section id="view-git" class="side-view hidden">
+            <div class="hd">
+              <span class="ttl">Git</span>
+              <div class="hd-actions">
+                <button id="git-refresh" class="ib" type="button" aria-label="Refresh"></button>
+              </div>
+            </div>
+            <div class="commit-body">
+              <input id="commit-msg" class="inp" type="text" placeholder="Commit message" aria-label="Commit message" autocomplete="off" />
+              <button id="commit-btn" class="commit-btn" type="button">Commit</button>
+            </div>
+            <div class="lbl list-label">Changes</div>
+            <div id="git-changes" class="list grow"></div>
+          </section>
+
+          <section id="view-run" class="side-view hidden">
+            <div class="hd">
+              <span class="ttl">Run</span>
+              <div class="hd-actions">
+                <button id="run-add" class="ib" type="button" aria-label="Add configuration"></button>
+              </div>
+            </div>
+            <div id="run-list" class="list grow"></div>
+          </section>
+
+          <section id="view-plugins" class="side-view hidden">
+            <div class="hd">
+              <span class="ttl">Plugins</span>
+            </div>
+            <div class="search-body">
+              <input id="plugin-filter" class="inp" type="text" placeholder="Search plugins" aria-label="Search plugins" autocomplete="off" />
+            </div>
+            <div id="plugin-list" class="list grow"></div>
+          </section>
+        </aside>
+
+        <div id="side-grip" role="separator" aria-orientation="vertical" tabindex="-1"></div>
+
+        <!-- main column -->
+        <div id="main-col">
+          <!-- editor island -->
+          <section id="editor-island" class="island" aria-label="Editor">
+            <div id="tabs" class="tabs" role="tablist" aria-label="Open files"></div>
+            <div id="editor" class="editor-host" aria-label="Code editor"></div>
+          </section>
+
+          <div id="bottom-grip" role="separator" aria-orientation="horizontal" tabindex="-1"></div>
+
+          <!-- bottom island -->
+          <section id="bottom-island" class="island" aria-label="Bottom panel">
+            <div class="hd">
+              <div id="bottom-tabs" role="tablist" aria-label="Panel tabs">
+                <button id="tab-terminal" class="bt" type="button" role="tab" aria-selected="false">Terminal</button>
+                <button id="tab-problems" class="bt" type="button" role="tab" aria-selected="false">
+                  Problems
+                  <span id="prob-count" class="count-badge hidden">0</span>
+                </button>
+                <button id="tab-output" class="bt" type="button" role="tab" aria-selected="false">
+                  Output
+                  <span id="out-dot" class="out-dot hidden"></span>
+                </button>
+              </div>
+              <div class="hd-actions">
+                <button id="terminal-new" class="ib" type="button" aria-label="New terminal"></button>
+                <button id="bottom-close" class="ib" type="button" aria-label="Close panel"></button>
+              </div>
+            </div>
+
+            <div id="terminal-view" class="bottom-view">
+              <div id="terminal-host"></div>
+            </div>
+
+            <div id="problems-view" class="bottom-view hidden">
+              <div id="problems-list" class="list grow"></div>
+            </div>
+
+            <div id="output-view" class="bottom-view hidden">
+              <div id="output-log" class="mono"></div>
+            </div>
+          </section>
         </div>
-      </aside>
+      </div>
 
-      <div id="split-grip" role="separator" aria-orientation="vertical" tabindex="-1"></div>
-
-      <main id="workspace" class="panel">
-        <div id="tabs" class="tabs"></div>
-        <div id="editor" class="editor-host" aria-label="Code editor"></div>
-      </main>
-
+      <!-- status bar -->
       <footer id="status-bar">
-        <div class="status-side">
-          <button
-            id="sidebar-toggle"
-            class="icon-btn"
-            type="button"
-            title="Toggle explorer (Ctrl+B)"
-            aria-expanded="true"
-          ></button>
-          <span id="status-left">Starting…</span>
+        <div id="breadcrumbs" aria-label="File path"></div>
+        <div id="status-stats">
+          <span id="sb-pos">Ln 1, Col 1</span>
+          <span id="sb-spaces">Spaces: 2</span>
+          <span>UTF-8</span>
+          <span id="sb-eol">LF</span>
+          <span id="sb-lang">Plain Text</span>
         </div>
-        <span id="status-right"></span>
       </footer>
     </div>
+
+    <!-- settings / main menu popover -->
+    <div id="menu-pop" class="hidden" role="menu" aria-label="Menu"></div>
+
     <script>
       (function () {
-        var base = new URL('./vendor/monaco/vs/', document.baseURI).href;
+        // MonacoEnvironment.baseUrl must point at the directory CONTAINING
+        // vs/ (module ids resolve as baseUrl + 'vs/…'), while workerMain is
+        // loaded from vs/base/worker — two different paths on purpose.
+        var base = new URL('./vendor/monaco/', document.baseURI).href;
         self.MonacoEnvironment = {
           getWorkerUrl: function () {
             var src =
@@ -63,7 +202,7 @@
               base +
               "' }; importScripts('" +
               base +
-              "base/worker/workerMain.js');";
+              "vs/base/worker/workerMain.js');";
             return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(src);
           },
         };

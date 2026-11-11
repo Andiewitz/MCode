@@ -48,5 +48,8 @@ of background services — one binary.
 
 - Icons: `bundle.icon` is intentionally empty. Generate with
   `cargo tauri icon assets/icon.png` once a logo exists (`tauri build` requires icons).
-- Editing surface is a shared `<textarea>`; the rope-based buffer model in
-  `features/editor-core` is not wired into the UI yet.
+- Fonts are vendored as variable woff2 (`client/vendor/fonts/`, Inter +
+  JetBrains Mono) so the UI renders identically offline.
+- The UI shell follows the "Islands" design reference in
+  `redesign-islands/Main.dc.html` (mockup — treat its values as the spec,
+  not as code to copy).
