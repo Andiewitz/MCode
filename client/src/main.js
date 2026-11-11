@@ -87,6 +87,7 @@ const searchClearBtn = $('search-clear');
 
 const commitMsg = $('commit-msg');
 const commitBtn = $('commit-btn');
+const commitError = $('commit-error');
 const gitChanges = $('git-changes');
 const gitRefreshBtn = $('git-refresh');
 
@@ -126,6 +127,9 @@ let sideTool = 'files'; // '' = side island closed
 let bottomTab = 'terminal'; // '' = bottom island closed
 let gitTimer = null;
 let recentProjects = [];
+let committing = false;
+let commitFlash = false;
+let commitSuccessTimer = null;
 
 function readJson(key, fallback) {
   try {
@@ -261,9 +265,11 @@ function openMenu(anchor) {
   if (rect.bottom + height + 8 > window.innerHeight) {
     menuPop.style.top = 'auto';
     menuPop.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+    menuPop.style.transformOrigin = 'bottom left';
   } else {
     menuPop.style.bottom = 'auto';
     menuPop.style.top = `${rect.bottom + 6}px`;
+    menuPop.style.transformOrigin = 'top left';
   }
   menuPop.style.left = `${Math.min(rect.left, window.innerWidth - menuPop.offsetWidth - 8)}px`;
   anchor.setAttribute('aria-expanded', 'true');
@@ -373,9 +379,11 @@ function openProjects(anchor) {
   if (rect.bottom + height + 8 > window.innerHeight) {
     projectsPop.style.top = 'auto';
     projectsPop.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+    projectsPop.style.transformOrigin = 'bottom left';
   } else {
     projectsPop.style.bottom = 'auto';
     projectsPop.style.top = `${rect.bottom + 6}px`;
+    projectsPop.style.transformOrigin = 'top left';
   }
   projectsPop.style.left = `${Math.max(
     8,
@@ -615,8 +623,12 @@ async function refreshGit() {
     );
   }
 
-  commitBtn.disabled = changes.length === 0 || !gitInfo;
-  commitBtn.textContent = changes.length ? `Commit ${changes.length} file${changes.length === 1 ? '' : 's'}` : 'Commit';
+  if (!committing && !commitFlash) {
+    commitBtn.disabled = changes.length === 0 || !gitInfo;
+    commitBtn.textContent = changes.length
+      ? `Commit ${changes.length} file${changes.length === 1 ? '' : 's'}`
+      : 'Commit';
+  }
 }
 
 function scheduleGitRefresh() {
@@ -624,23 +636,67 @@ function scheduleGitRefresh() {
   gitTimer = setTimeout(refreshGit, 400);
 }
 
+function showCommitError(message) {
+  commitError.textContent = message;
+  // Restart the entrance + shake even when the same error fires twice.
+  commitError.classList.remove('show');
+  commitMsg.classList.remove('invalid');
+  void commitError.offsetWidth;
+  commitError.classList.add('show');
+  commitMsg.classList.add('invalid');
+  commitMsg.setAttribute('aria-invalid', 'true');
+}
+
+function clearCommitError() {
+  if (!commitError.textContent) return;
+  commitError.textContent = '';
+  commitError.classList.remove('show');
+  commitMsg.classList.remove('invalid');
+  commitMsg.removeAttribute('aria-invalid');
+}
+
+function flashCommitSuccess() {
+  clearTimeout(commitSuccessTimer);
+  commitFlash = true;
+  commitBtn.textContent = 'Committed';
+  commitBtn.classList.add('success');
+  commitSuccessTimer = setTimeout(() => {
+    commitBtn.classList.remove('success');
+    commitFlash = false;
+    refreshGit();
+  }, 1400);
+}
+
 async function doCommit() {
+  if (committing) return;
   const message = commitMsg.value.trim();
   if (!message) {
-    setStatus('Commit needs a message');
+    showCommitError('A commit message is required');
     commitMsg.focus();
     return;
   }
+  clearCommitError();
+  committing = true;
   commitBtn.disabled = true;
+  commitBtn.classList.add('busy');
+  commitBtn.setAttribute('aria-busy', 'true');
+  commitBtn.textContent = 'Committing…';
   try {
     const result = await commit(rootPath, message);
     setStatus(`Committed: ${result || message}`);
     commitMsg.value = '';
+    committing = false;
+    commitBtn.classList.remove('busy');
+    commitBtn.removeAttribute('aria-busy');
     await refreshGit();
+    flashCommitSuccess();
   } catch (err) {
+    committing = false;
+    commitBtn.classList.remove('busy');
+    commitBtn.removeAttribute('aria-busy');
+    await refreshGit();
+    showCommitError(`Commit failed: ${err}`);
     logOutput(`Commit failed: ${err}`, 'err');
-  } finally {
-    commitBtn.disabled = false;
   }
 }
 
@@ -1055,6 +1111,7 @@ searchClearBtn.addEventListener('click', () => {
 });
 
 commitBtn.addEventListener('click', doCommit);
+commitMsg.addEventListener('input', clearCommitError);
 commitMsg.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') doCommit();
 });

@@ -103,7 +103,8 @@
               </div>
             </div>
             <div class="commit-body">
-              <input id="commit-msg" class="inp" type="text" placeholder="Commit message" aria-label="Commit message" autocomplete="off" />
+              <input id="commit-msg" class="inp" type="text" placeholder="Commit message" aria-label="Commit message" aria-describedby="commit-error" autocomplete="off" />
+              <div id="commit-error" class="commit-error" role="alert" aria-live="assertive"></div>
               <button id="commit-btn" class="commit-btn" type="button">Commit</button>
             </div>
             <div class="lbl list-label">Changes</div>

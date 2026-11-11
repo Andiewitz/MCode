@@ -19,6 +19,11 @@
   src: url('../vendor/fonts/jetbrains-mono-var.woff2') format('woff2');
 }
 
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
 [data-theme='dark'] {
   --frame: #2c2e32;
   --island: #1e1f22;
@@ -130,6 +135,33 @@ button {
   align-items: center;
   justify-content: center;
   text-align: left;
+}
+.ib,
+.ib-lg,
+.rb,
+.bt,
+button.wg,
+.chip,
+.swatch,
+.seg button,
+.tab-close,
+.commit-btn {
+  transition:
+    transform 140ms var(--ease-out),
+    background-color 140ms ease,
+    color 140ms ease;
+}
+.ib:active,
+.ib-lg:active,
+.rb:active,
+.bt:active,
+button.wg:active,
+.chip:active,
+.swatch:active,
+.seg button:active,
+.tab-close:active,
+.commit-btn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 button:focus-visible,
 input:focus-visible {
@@ -535,6 +567,27 @@ body.row-resizing {
   gap: 8px;
   flex: none;
 }
+.commit-body .inp {
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+.commit-body .inp.invalid {
+  border-color: var(--red);
+  animation: field-shake 240ms var(--ease-out);
+}
+.commit-error {
+  display: none;
+  margin-top: -2px;
+  padding: 0 2px;
+  color: var(--red);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.commit-error.show {
+  display: block;
+  animation: commit-error-in 160ms var(--ease-out);
+}
 .commit-btn {
   height: 30px;
   border-radius: 8px;
@@ -543,6 +596,11 @@ body.row-resizing {
   font-weight: 500;
   width: 100%;
   justify-content: center;
+  transition:
+    transform 140ms var(--ease-out),
+    filter 160ms ease,
+    background-color 160ms ease,
+    opacity 160ms ease;
 }
 .commit-btn:hover {
   filter: brightness(1.08);
@@ -551,6 +609,69 @@ body.row-resizing {
   opacity: 0.45;
   cursor: default;
   filter: none;
+}
+.commit-btn.busy {
+  opacity: 0.8;
+  cursor: progress;
+}
+.commit-btn.busy::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: commit-spin 650ms linear infinite;
+}
+.commit-btn.success {
+  background: var(--green);
+  opacity: 1;
+}
+.commit-btn.success::before {
+  content: '';
+  width: 5px;
+  height: 9px;
+  margin-right: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translateY(-1px);
+  animation: check-pop 200ms var(--ease-out);
+}
+@keyframes field-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  45% {
+    transform: translateX(4px);
+  }
+  70% {
+    transform: translateX(-2px);
+  }
+  85% {
+    transform: translateX(1px);
+  }
+}
+@keyframes commit-error-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+@keyframes commit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes check-pop {
+  from {
+    opacity: 0;
+    transform: rotate(45deg) translateY(-1px) scale(0.6);
+  }
 }
 
 /* --- file tree ---------------------------------------------------------- */
@@ -852,6 +973,15 @@ body.row-resizing {
 .bottom-view.hidden {
   display: none;
 }
+.side-view:not(.hidden),
+.bottom-view:not(.hidden) {
+  animation: view-in 120ms ease-out;
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+  }
+}
 #terminal-view {
   padding: 2px 20px 12px;
   overflow: hidden;
@@ -968,6 +1098,21 @@ body.row-resizing {
 }
 
 /* --- menu popover ----------------------------------------------------------- */
+
+#menu-pop,
+#projects-pop {
+  transform-origin: top left;
+}
+#menu-pop:not(.hidden),
+#projects-pop:not(.hidden) {
+  animation: pop-in 160ms var(--ease-out);
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
 
 #menu-pop {
   position: fixed;
@@ -1126,5 +1271,6 @@ body.row-resizing {
   *::before,
   *::after {
     transition: none !important;
+    animation: none !important;
   }
 }
