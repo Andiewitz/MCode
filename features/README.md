@@ -2,8 +2,10 @@
 
 Each subdirectory is one IDE feature, packaged as a small, independent Rust crate.
 
-- `editor-core/` — buffer model and text primitives (present, as the pattern example)
-- planned: `file-explorer/`, `terminal/`, `syntax/`, `keybindings/`, `lsp-bridge/`, …
+- `editor-core/` — buffer model and text primitives
+- `file-explorer/` — directory listing, text IO, and project search
+- `git-panel/` — git status, remote lookup, and commit (git CLI)
+- planned: `terminal/`, `syntax/`, `keybindings/`, `lsp-bridge/`, …
 
 Rules of thumb:
 

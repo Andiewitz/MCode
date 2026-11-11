@@ -102,102 +102,16 @@ fn fs_search(
     )
 }
 
-#[derive(Serialize, Clone)]
-struct GitChange {
-    code: String,
-    path: String,
-}
-
-#[derive(Serialize, Clone)]
-struct GitStatus {
-    branch: String,
-    changes: Vec<GitChange>,
-}
-
-fn resolve_root(root: Option<String>) -> Result<String, String> {
-    root.filter(|s| !s.trim().is_empty())
-        .map(Ok)
-        .unwrap_or_else(|| {
-            std::env::current_dir()
-                .map(|path| path.to_string_lossy().into_owned())
-                .map_err(|err| err.to_string())
-        })
-}
-
-fn run_git(root: &str, args: &[&str]) -> Result<String, String> {
-    let output = std::process::Command::new("git")
-        .args(args)
-        .current_dir(root)
-        .output()
-        .map_err(|err| format!("git unavailable: {err}"))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        return Err(if stderr.is_empty() {
-            format!("git {} failed", args.first().unwrap_or(&""))
-        } else {
-            stderr
-        });
-    }
-    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-}
-
-/// `git status --porcelain=v1 -b`, parsed into branch + change rows.
+/// `git status --porcelain=v1 -b`, parsed into branch + remote + change rows.
 #[tauri::command]
-fn git_status(root: Option<String>) -> Result<GitStatus, String> {
-    let root = resolve_root(root)?;
-    let out = run_git(&root, &["status", "--porcelain=v1", "-b"])?;
-
-    let mut branch = String::new();
-    let mut changes = Vec::new();
-    for line in out.lines() {
-        if let Some(rest) = line.strip_prefix("## ") {
-            branch = rest.split("...").next().unwrap_or(rest).trim().to_string();
-            continue;
-        }
-        let bytes = line.as_bytes();
-        if bytes.len() < 4 {
-            continue;
-        }
-        let raw = &line[..2];
-        let code = match raw {
-            "??" => "?".to_string(),
-            _ => {
-                let first = raw.chars().find(|c| !c.is_whitespace()).unwrap_or('M');
-                match first {
-                    'R' | 'C' => 'M',
-                    other => other,
-                }
-                .to_string()
-            }
-        };
-        let mut path = line[3..].to_string();
-        if let Some(rename) = path.rsplit_once(" -> ") {
-            path = rename.1.to_string();
-        }
-        changes.push(GitChange { code, path });
-    }
-    if branch.is_empty() {
-        branch = "(no branch)".to_string();
-    }
-    Ok(GitStatus { branch, changes })
+fn git_status(root: Option<String>) -> Result<git_panel::GitStatus, String> {
+    git_panel::status(root.as_deref()).map_err(|err| err.to_string())
 }
 
 /// Stage everything and commit with `message` (git CLI under the hood).
 #[tauri::command]
 fn git_commit(root: Option<String>, message: String) -> Result<String, String> {
-    let root = resolve_root(root)?;
-    let message = message.trim();
-    if message.is_empty() {
-        return Err("commit message is empty".to_string());
-    }
-    run_git(&root, &["add", "-A"])?;
-    let out = run_git(&root, &["commit", "-m", message])?;
-    Ok(out
-        .lines()
-        .find(|line| !line.trim().is_empty())
-        .unwrap_or("committed")
-        .trim()
-        .to_string())
+    git_panel::commit(root.as_deref(), &message).map_err(|err| err.to_string())
 }
 
 #[tauri::command]

@@ -26,3 +26,4 @@ and xterm.js (`client/vendor/xterm`). Revisit a bundler only if this outgrows it
 | Tool        | Version | Why                                              |
 | ----------- | ------- | ------------------------------------------------ |
 | `tauri-cli` | 2.x     | Optional: `cargo tauri dev/build`, icon generation |
+| `git`       | 2.x     | Git panel: status, remote, and commit via the CLI    |

@@ -139,17 +139,21 @@ function dirNode(entry, onOpen, onStatus, depth) {
 }
 
 /**
- * Fill `rootEl` with a tree rooted at the process working directory.
+ * Fill `rootEl` with a tree rooted at `rootPath` (the active project).
  * Calls `onStatus(message)` on failures, `onOpen(entry)` on file click.
- * Returns `{ setActiveFile(path), setGitStatus(changes) }`.
+ * Returns `{ setActiveFile(path), setGitStatus(changes), collapseAll() }`.
  */
-export async function mountFileTree(rootEl, { onOpen, onStatus }) {
+export async function mountFileTree(rootEl, { rootPath, onOpen, onStatus }) {
   rootEl.replaceChildren();
 
   if (!ipcAvailable()) {
     rootEl.appendChild(
       note('No Tauri IPC here — run the desktop app to browse files')
     );
+    return { setActiveFile() {}, setGitStatus() {}, collapseAll() {} };
+  }
+  if (!rootPath) {
+    rootEl.appendChild(note('No project folder — pick one from Projects'));
     return { setActiveFile() {}, setGitStatus() {}, collapseAll() {} };
   }
 
@@ -170,8 +174,7 @@ export async function mountFileTree(rootEl, { onOpen, onStatus }) {
   }
 
   try {
-    const rootPath = await invoke('fs_default_root');
-    const rootName = rootPath.split('/').filter(Boolean).pop() || rootPath;
+    const rootName = rootPath.split(/[\\/]/).filter(Boolean).pop() || rootPath;
     const root = dirNode(
       { name: rootName, path: rootPath, is_dir: true },
       onOpen,

@@ -18,14 +18,19 @@
       <!-- window header -->
       <header id="win-header">
         <button id="menu-btn" class="ib ib-lg" type="button" aria-label="Main menu" aria-haspopup="menu" aria-expanded="false"></button>
-        <button id="project-chip" class="wg" type="button" aria-label="Project: MCode">
-          <span class="logo" aria-hidden="true">M</span>
-          <span class="wg-strong">MCode</span>
+        <button id="project-chip" class="wg" type="button" aria-label="Projects" aria-haspopup="menu" aria-expanded="false" title="Switch project">
+          <span class="wg-icon" id="project-icon"></span>
+          <span class="wg-strong">Projects</span>
+          <span class="wg-icon caret-dn" id="project-caret"></span>
         </button>
         <button id="branch-chip" class="wg" type="button" aria-label="Branch" title="Show git panel">
           <span class="wg-icon" id="branch-icon"></span>
           <span id="branch-name">…</span>
         </button>
+        <span id="remote-chip" class="wg remote-chip dim" title="No git remote configured">
+          <span class="wg-icon" id="remote-icon"></span>
+          <span id="remote-label">no remote found</span>
+        </span>
         <div class="header-spacer"></div>
         <button id="run-chip" class="wg" type="button" aria-label="Run dev" title="Run the dev preset in the terminal">
           <span class="wg-icon accent" id="run-icon"></span>
@@ -188,6 +193,9 @@
 
     <!-- settings / main menu popover -->
     <div id="menu-pop" class="hidden" role="menu" aria-label="Menu"></div>
+
+    <!-- projects switcher popover -->
+    <div id="projects-pop" class="hidden" role="menu" aria-label="Projects"></div>
 
     <script>
       (function () {

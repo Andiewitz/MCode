@@ -1055,6 +1055,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "git-panel"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "glib"
 version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1743,6 +1750,7 @@ name = "mcode"
 version = "0.1.0"
 dependencies = [
  "file-explorer",
+ "git-panel",
  "portable-pty",
  "serde",
  "serde_json",

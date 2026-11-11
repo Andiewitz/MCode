@@ -1,0 +1,9 @@
+[package]
+name = "git-panel"
+version.workspace = true
+edition.workspace = true
+description = "Git status, remote, and commit operations for the MCode Git panel"
+license.workspace = true
+
+[dependencies]
+serde.workspace = true

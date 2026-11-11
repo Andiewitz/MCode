@@ -30,7 +30,8 @@ Ordered, intentionally small steps — the IDE earns each feature.
 
 - [x] Terminal panel (bottom island, PTY over IPC, run presets)
 - [x] Search across files (`fs_search` IPC: substring / whole-word / regex)
-- [x] Git panel (`git_status` / `git_commit` IPC via the git CLI; branch
-      chip, change list with status colors, commit from the side panel)
+- [x] Git panel (`git-panel` crate: `git_status` / `git_commit` over the
+      git CLI; branch chip, remote chip, change list with status colors,
+      commit from the side panel)
 - [x] Problems panel (Monaco markers, click to jump)
 - [ ] Command palette

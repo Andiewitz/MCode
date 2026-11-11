@@ -14,7 +14,7 @@ import {
   menuIcon, searchIcon, gitIcon, playIcon, pluginsIcon, terminalIcon,
   problemsIcon, settingsIcon, chevronDownIcon, refreshIcon, plusIcon,
   closeIcon, errorIcon, warningIcon, infoIcon, clockIcon, filePlusIcon,
-  collapseIcon, playIcon as runPlay,
+  collapseIcon, playIcon as runPlay, folderIcon, githubIcon,
 } from './icons.js';
 
 /* --- element refs ---------------------------------------------------- */
@@ -28,6 +28,9 @@ const branchChip = $('branch-chip');
 const branchName = $('branch-name');
 const runChip = $('run-chip');
 const headerSearchBtn = $('header-search-btn');
+const remoteChip = $('remote-chip');
+const remoteLabel = $('remote-label');
+const projectsPop = $('projects-pop');
 
 const railBtns = {
   files: $('tool-files'),
@@ -102,6 +105,8 @@ const sbLang = $('sb-lang');
 const SHELL_KEY = 'mcode.shell';
 const THEME_KEY = 'mcode.theme';
 const SEARCH_KEY = 'mcode.search';
+const PROJECT_KEY = 'mcode.project';
+const PROJECTS_KEY = 'mcode.projects';
 const ACCENTS = ['#2F6BEB', '#7C5CFF', '#E5731F', '#1FA37A'];
 
 let version = '';
@@ -120,6 +125,7 @@ let recentSearches = [];
 let sideTool = 'files'; // '' = side island closed
 let bottomTab = 'terminal'; // '' = bottom island closed
 let gitTimer = null;
+let recentProjects = [];
 
 function readJson(key, fallback) {
   try {
@@ -246,6 +252,7 @@ function swatchRow() {
 }
 
 function openMenu(anchor) {
+  closeProjects();
   const rect = anchor.getBoundingClientRect();
   renderMenu();
   menuPop.classList.remove('hidden');
@@ -274,10 +281,158 @@ function closeMenu() {
 }
 
 function onMenuOutside(event) {
-  if (!menuPop.contains(event.target)) closeMenu();
+  if (menuPop.contains(event.target)) return;
+  if (menuBtn.contains(event.target) || $('tool-settings').contains(event.target)) return;
+  closeMenu();
 }
 function onMenuKey(event) {
   if (event.key === 'Escape') closeMenu();
+}
+
+/* --- projects switcher -------------------------------------------------- */
+
+function baseName(path = '') {
+  return path.split(/[\\/]/).filter(Boolean).pop() || path;
+}
+
+function readRecentProjects() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PROJECTS_KEY) ?? '');
+    if (Array.isArray(raw)) return raw.filter((path) => typeof path === 'string' && path);
+  } catch {
+    // corrupt or missing — start fresh
+  }
+  return [];
+}
+
+function rememberProject(path) {
+  if (!path) return;
+  recentProjects = [path, ...recentProjects.filter((p) => p !== path)].slice(0, 8);
+  persist(PROJECTS_KEY, recentProjects);
+}
+
+function prettyRemote(url) {
+  const cleaned = url.replace(/\.git$/i, '');
+  const github = cleaned.match(/github\.com[:/]+(.+)$/i);
+  return github ? github[1] : cleaned;
+}
+
+function setRemote(remote) {
+  remoteChip.classList.toggle('dim', !remote);
+  remoteLabel.textContent = remote ? prettyRemote(remote) : 'no remote found';
+  remoteChip.title = remote ? `Remote: ${remote}` : 'No git remote configured';
+}
+
+function projectRow(path) {
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = `menu-row project-row${path === rootPath ? ' sel' : ''}`;
+  row.title = path;
+  row.append(elSpan('proj-name', baseName(path)), elSpan('proj-path', path));
+  row.addEventListener('click', () => switchProject(path));
+  return row;
+}
+
+function renderProjects() {
+  const list = document.createElement('div');
+  list.className = 'project-list';
+  if (recentProjects.length === 0) {
+    list.appendChild(elSpan('empty-note', 'No projects yet — open a folder below'));
+  } else {
+    list.append(...recentProjects.map(projectRow));
+  }
+
+  const form = document.createElement('form');
+  form.className = 'proj-open';
+  const input = document.createElement('input');
+  input.className = 'inp';
+  input.type = 'text';
+  input.placeholder = 'Open folder path…';
+  input.setAttribute('aria-label', 'Open project folder by path');
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  const openBtn = document.createElement('button');
+  openBtn.type = 'submit';
+  openBtn.className = 'commit-btn';
+  openBtn.textContent = 'Open';
+  form.append(input, openBtn);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    switchProject(input.value.trim());
+  });
+
+  projectsPop.replaceChildren(elSpan('lbl', 'Projects'), list, form);
+}
+
+function openProjects(anchor) {
+  closeMenu();
+  renderProjects();
+  projectsPop.classList.remove('hidden');
+  const rect = anchor.getBoundingClientRect();
+  const height = projectsPop.offsetHeight;
+  if (rect.bottom + height + 8 > window.innerHeight) {
+    projectsPop.style.top = 'auto';
+    projectsPop.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+  } else {
+    projectsPop.style.bottom = 'auto';
+    projectsPop.style.top = `${rect.bottom + 6}px`;
+  }
+  projectsPop.style.left = `${Math.max(
+    8,
+    Math.min(rect.left, window.innerWidth - projectsPop.offsetWidth - 8)
+  )}px`;
+  anchor.setAttribute('aria-expanded', 'true');
+  setTimeout(() => document.addEventListener('pointerdown', onProjectsOutside), 0);
+  document.addEventListener('keydown', onProjectsKey);
+}
+
+function closeProjects() {
+  if (projectsPop.classList.contains('hidden')) return;
+  projectsPop.classList.add('hidden');
+  projectChip.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('pointerdown', onProjectsOutside);
+  document.removeEventListener('keydown', onProjectsKey);
+}
+
+function onProjectsOutside(event) {
+  if (projectsPop.contains(event.target) || projectChip.contains(event.target)) return;
+  closeProjects();
+}
+function onProjectsKey(event) {
+  if (event.key === 'Escape') closeProjects();
+}
+
+async function switchProject(path) {
+  if (!path) return;
+  if (path === rootPath) {
+    closeProjects();
+    return;
+  }
+  if (!ipcAvailable()) {
+    setStatus('Switching projects needs the Tauri desktop runtime');
+    return;
+  }
+  try {
+    await invoke('fs_list_dir', { path });
+  } catch (err) {
+    setStatus(`Cannot open project: ${err}`);
+    return;
+  }
+  rootPath = path;
+  rootName = baseName(path);
+  persist(PROJECT_KEY, { path });
+  rememberProject(path);
+  closeProjects();
+  searchResults.replaceChildren();
+  tree = await mountFileTree(treeEl, {
+    rootPath,
+    onOpen: openFileFromTree,
+    onStatus: setStatus,
+  });
+  if (window.__mcode) window.__mcode.tree = tree;
+  setStatus(`Project: ${path}`);
+  updateStatus();
+  refreshGit();
 }
 
 /* --- rail + bottom tab state ---------------------------------------------- */
@@ -338,7 +493,9 @@ function crumb(cls, text) {
 
 function updateStatus() {
   const info = editor?.activeInfo?.() ?? null;
-  breadcrumbs.replaceChildren(crumb('crumb-dim', rootName || 'MCode'));
+  const rootCrumb = crumb('crumb-dim', rootPath || 'No project');
+  rootCrumb.title = rootPath || '';
+  breadcrumbs.replaceChildren(rootCrumb);
   if (info?.path && rootPath) {
     let rel = info.path;
     if (rel.startsWith(`${rootPath}/`)) rel = rel.slice(rootPath.length + 1);
@@ -413,6 +570,7 @@ async function refreshGit() {
 
   branchName.textContent = gitInfo?.branch || 'no git';
   branchChip.title = gitInfo ? `Branch ${gitInfo.branch} — show changes` : 'Git unavailable';
+  setRemote(gitInfo?.remote ?? null);
   gitDot.classList.toggle('hidden', changes.length === 0);
 
   tree?.setGitStatus(changes);
@@ -714,7 +872,10 @@ async function init() {
   // icons into static buttons
   menuBtn.innerHTML = menuIcon;
   headerSearchBtn.innerHTML = searchIcon;
+  $('project-icon').innerHTML = folderIcon;
+  $('project-caret').innerHTML = chevronDownIcon;
   $('branch-icon').innerHTML = gitIcon;
+  $('remote-icon').innerHTML = githubIcon;
   runChip.querySelector('.wg-icon.accent').innerHTML = playIcon(14);
   runChip.querySelector('.wg-icon:last-child').innerHTML = chevronDownIcon;
   for (const [key, btn] of Object.entries(railBtns)) {
@@ -767,17 +928,22 @@ async function init() {
   });
 
   terminal = createTerminal({ host: terminalHost, onStatus: setStatus });
-  tree = await mountFileTree(treeEl, { onOpen: openFileFromTree, onStatus: setStatus });
-
-  // Debug/e2e hook: drive the shell from tests without Tauri IPC.
-  window.__mcode = { editor, terminal, tree };
 
   if (!ipcAvailable()) {
+    tree = await mountFileTree(treeEl, {
+      rootPath: null,
+      onOpen: openFileFromTree,
+      onStatus: setStatus,
+    });
+    // Debug/e2e hook: drive the shell from tests without Tauri IPC.
+    window.__mcode = { editor, terminal, tree };
     renderProblems();
     setStatus('Running outside Tauri — IPC unavailable');
     branchName.textContent = 'no git';
+    setRemote(null);
     setSideTool(sideTool || 'files');
     setBottomTab(bottomTab || 'terminal');
+    updateStatus();
     refreshGit();
     return;
   }
@@ -787,12 +953,37 @@ async function init() {
   } catch {
     version = '';
   }
-  try {
-    rootPath = await invoke('fs_default_root');
-    rootName = rootPath.split('/').filter(Boolean).pop() || rootPath;
-  } catch {
-    rootPath = null;
+
+  recentProjects = readRecentProjects();
+  const savedProject = readJson(PROJECT_KEY, { path: '' }).path;
+  if (savedProject) {
+    try {
+      await invoke('fs_list_dir', { path: savedProject });
+      rootPath = savedProject;
+    } catch {
+      rootPath = null;
+    }
   }
+  if (!rootPath) {
+    try {
+      rootPath = await invoke('fs_default_root');
+    } catch {
+      rootPath = null;
+    }
+  }
+  if (rootPath) {
+    rootName = baseName(rootPath);
+    rememberProject(rootPath);
+  }
+
+  tree = await mountFileTree(treeEl, {
+    rootPath,
+    onOpen: openFileFromTree,
+    onStatus: setStatus,
+  });
+
+  // Debug/e2e hook: drive the shell from tests without Tauri IPC.
+  window.__mcode = { editor, terminal, tree };
 
   setSideTool(sideTool || 'files');
   setBottomTab(bottomTab || 'terminal');
@@ -814,7 +1005,9 @@ async function openFileFromTree(entry) {
 
 menuBtn.addEventListener('click', () => (menuPop.classList.contains('hidden') ? openMenu(menuBtn) : closeMenu()));
 $('tool-settings').addEventListener('click', () => (menuPop.classList.contains('hidden') ? openMenu($('tool-settings')) : closeMenu()));
-projectChip.addEventListener('click', () => toggleSideTool('files'));
+projectChip.addEventListener('click', () =>
+  projectsPop.classList.contains('hidden') ? openProjects(projectChip) : closeProjects()
+);
 branchChip.addEventListener('click', () => {
   toggleSideTool('git');
   refreshGit();
