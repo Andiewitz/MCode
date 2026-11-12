@@ -1222,25 +1222,66 @@ body.row-resizing {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.project-row.sel {
-  background: var(--accent-soft);
-}
-.proj-open {
+.proj-current {
   display: flex;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 6px 4px 2px;
-  border-top: 1px solid var(--line);
-}
-.proj-open .inp {
-  flex: 1;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
-  height: 28px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--island);
+  border: 1px solid var(--line);
 }
-.proj-open .commit-btn {
+.proj-current .empty-note {
+  padding: 0;
+}
+.proj-current-icon {
   flex: none;
-  width: auto;
-  padding: 0 12px;
+  display: inline-flex;
+  color: var(--accent);
+}
+.proj-current-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.proj-current .proj-name {
+  font-weight: 600;
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.proj-current .proj-path {
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.proj-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 30px;
+  margin: 2px 0;
+  border-radius: 8px;
+  border: 1px dashed var(--line);
+  color: var(--text);
+}
+.proj-new:hover {
+  background: var(--hover);
+  color: var(--text-strong);
+}
+.proj-new .proj-new-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+.proj-new svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* --- adaptation -------------------------------------------------------------- */

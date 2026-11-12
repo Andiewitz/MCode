@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Generate the MCode app icon set from a drawn source.
 
-Draws the accent tile + white "M" monogram (same mark as the header logo)
-at 1024x1024, then writes every icon file Tauri bundles need into
-src-tauri/icons/. Run from the repo root:
+Draws a black rounded tile with a white sigma (Σ) mark at 1024x1024,
+then writes every icon file Tauri bundles need into src-tauri/icons/.
+Run from the repo root:
 
     python3 scripts/generate-icons.py
 
@@ -13,7 +13,7 @@ pass it to `cargo tauri icon assets/icon.png` instead if the CLI is around.
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
@@ -21,8 +21,16 @@ ICONS = ROOT / "src-tauri" / "icons"
 
 SIZE = 1024
 SS = 4  # supersample factor for clean edges
-ACCENT_TOP = (61, 123, 255)
-ACCENT_BOTTOM = (30, 88, 216)
+INK = (10, 10, 12)
+PAPER = (255, 255, 255)
+SIGMA_FONTS = (
+    "/usr/share/fonts/truetype/noto/NotoSans-SemiBold.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "C:/Windows/Fonts/arialbd.ttf",
+)
 
 
 def draw_source() -> Image.Image:
@@ -30,34 +38,28 @@ def draw_source() -> Image.Image:
     tile = (64 * SS, 64 * SS, 960 * SS, 960 * SS)
     radius = 200 * SS
 
-    # Vertical accent gradient clipped to the rounded tile.
-    gradient = Image.new("RGB", (px, px))
-    grad_draw = ImageDraw.Draw(gradient)
-    for y in range(px):
-        t = y / (px - 1)
-        color = tuple(round(ACCENT_TOP[i] + (ACCENT_BOTTOM[i] - ACCENT_TOP[i]) * t) for i in range(3))
-        grad_draw.line([(0, y), (px, y)], fill=color)
-
-    mask = Image.new("L", (px, px), 0)
-    ImageDraw.Draw(mask).rounded_rectangle(tile, radius=radius, fill=255)
-
     img = Image.new("RGBA", (px, px), (0, 0, 0, 0))
-    img.paste(gradient, (0, 0), mask)
-
-    # Bold monogram M: two verticals joined by a rounded V.
     draw = ImageDraw.Draw(img)
-    stroke = 118 * SS
-    points = [
-        (300 * SS, 710 * SS),
-        (300 * SS, 342 * SS),
-        (512 * SS, 566 * SS),
-        (724 * SS, 342 * SS),
-        (724 * SS, 710 * SS),
-    ]
-    draw.line(points, fill=(255, 255, 255, 255), width=stroke, joint="curve")
-    cap = stroke / 2
-    for x, y in (points[0], points[-1]):
-        draw.ellipse((x - cap, y - cap, x + cap, y + cap), fill=(255, 255, 255, 255))
+    draw.rounded_rectangle(tile, radius=radius, fill=INK + (255,))
+
+    font = next((path for path in SIGMA_FONTS if Path(path).exists()), None)
+    if font:
+        sigma = ImageFont.truetype(font, 660 * SS)
+        draw.text((px / 2, px / 2), "Σ", font=sigma, fill=PAPER + (255,), anchor="mm")
+    else:
+        # Geometric fallback: top and bottom bars joined by a middle vertex.
+        stroke = 118 * SS
+        points = [
+            (724 * SS, 338 * SS),
+            (302 * SS, 338 * SS),
+            (566 * SS, 512 * SS),
+            (302 * SS, 686 * SS),
+            (724 * SS, 686 * SS),
+        ]
+        draw.line(points, fill=PAPER + (255,), width=stroke, joint="curve")
+        cap = stroke / 2
+        for x, y in (points[0], points[-1]):
+            draw.ellipse((x - cap, y - cap, x + cap, y + cap), fill=PAPER + (255,))
 
     return img.resize((SIZE, SIZE), Image.LANCZOS)
 

@@ -332,42 +332,79 @@ function setRemote(remote) {
 function projectRow(path) {
   const row = document.createElement('button');
   row.type = 'button';
-  row.className = `menu-row project-row${path === rootPath ? ' sel' : ''}`;
+  row.className = 'menu-row project-row';
   row.title = path;
   row.append(elSpan('proj-name', baseName(path)), elSpan('proj-path', path));
   row.addEventListener('click', () => switchProject(path));
   return row;
 }
 
-function renderProjects() {
-  const list = document.createElement('div');
-  list.className = 'project-list';
-  if (recentProjects.length === 0) {
-    list.appendChild(elSpan('empty-note', 'No projects yet — open a folder below'));
-  } else {
-    list.append(...recentProjects.map(projectRow));
+function currentProjectCard() {
+  const card = document.createElement('div');
+  card.className = 'proj-current';
+  if (!rootPath) {
+    card.appendChild(elSpan('empty-note', 'No project open'));
+    return card;
   }
+  const icon = document.createElement('span');
+  icon.className = 'proj-current-icon';
+  icon.innerHTML = folderIcon;
+  const info = document.createElement('div');
+  info.className = 'proj-current-info';
+  info.append(elSpan('proj-name', baseName(rootPath)), elSpan('proj-path', rootPath));
+  card.title = rootPath;
+  card.append(icon, info);
+  return card;
+}
 
-  const form = document.createElement('form');
-  form.className = 'proj-open';
-  const input = document.createElement('input');
-  input.className = 'inp';
-  input.type = 'text';
-  input.placeholder = 'Open folder path…';
-  input.setAttribute('aria-label', 'Open project folder by path');
-  input.autocomplete = 'off';
-  input.spellcheck = false;
-  const openBtn = document.createElement('button');
-  openBtn.type = 'submit';
-  openBtn.className = 'commit-btn';
-  openBtn.textContent = 'Open';
-  form.append(input, openBtn);
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    switchProject(input.value.trim());
-  });
+function newProjectButton() {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'proj-new';
+  btn.title = 'Choose a folder to open as a project';
+  const icon = document.createElement('span');
+  icon.className = 'proj-new-icon';
+  icon.innerHTML = plusIcon;
+  btn.append(icon, document.createTextNode('New Project'));
+  btn.addEventListener('click', pickProject);
+  return btn;
+}
 
-  projectsPop.replaceChildren(elSpan('lbl', 'Projects'), list, form);
+async function pickProject() {
+  if (!ipcAvailable()) {
+    setStatus('Opening folders needs the Tauri desktop runtime');
+    return;
+  }
+  closeProjects();
+  try {
+    const selected = await invoke('plugin:dialog|open', {
+      options: {
+        title: 'Open project folder',
+        directory: true,
+        multiple: false,
+        defaultPath: rootPath || undefined,
+      },
+    });
+    if (typeof selected === 'string' && selected) await switchProject(selected);
+  } catch (err) {
+    setStatus(`Could not open the folder picker: ${err}`);
+  }
+}
+
+function renderProjects() {
+  const others = recentProjects.filter((path) => path !== rootPath);
+  const nodes = [
+    elSpan('lbl', 'Current project'),
+    currentProjectCard(),
+    newProjectButton(),
+  ];
+  if (others.length > 0) {
+    const list = document.createElement('div');
+    list.className = 'project-list';
+    list.append(...others.map(projectRow));
+    nodes.push(elSpan('lbl', 'Recent'), list);
+  }
+  projectsPop.replaceChildren(...nodes);
 }
 
 function openProjects(anchor) {
