@@ -213,7 +213,6 @@ button.wg,
 .tab-close,
 .commit-btn {
   transition:
-    transform 140ms var(--ease-out),
     background-color 140ms ease,
     color 140ms ease;
 }
@@ -243,6 +242,11 @@ svg {
 }
 .hidden {
   display: none !important;
+}
+body.theme-switching *,
+body.theme-switching *::before,
+body.theme-switching *::after {
+  transition: none !important;
 }
 .mono {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -669,7 +673,6 @@ body.row-resizing {
   width: 100%;
   justify-content: center;
   transition:
-    transform 140ms var(--ease-out),
     filter 160ms ease,
     background-color 160ms ease,
     opacity 160ms ease;
@@ -1045,15 +1048,6 @@ body.row-resizing {
 .bottom-view.hidden {
   display: none;
 }
-.side-view:not(.hidden),
-.bottom-view:not(.hidden) {
-  animation: view-in 120ms ease-out;
-}
-@keyframes view-in {
-  from {
-    opacity: 0;
-  }
-}
 #terminal-view {
   padding: 2px 20px 12px;
   overflow: hidden;
@@ -1171,20 +1165,15 @@ body.row-resizing {
 
 /* --- menu popover ----------------------------------------------------------- */
 
-#menu-pop,
-#projects-pop,
-#settings-pop {
-  transform-origin: top left;
-}
 #menu-pop:not(.hidden),
 #projects-pop:not(.hidden),
 #settings-pop:not(.hidden) {
-  animation: pop-in 160ms var(--ease-out);
+  animation: pop-in 120ms ease-out both;
+  will-change: opacity;
 }
 @keyframes pop-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
   }
 }
 

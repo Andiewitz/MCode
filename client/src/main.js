@@ -188,7 +188,13 @@ function setStatus(message) {
 
 /* --- theme -------------------------------------------------------------- */
 
+let themeSwitchFrame = 0;
+
 function applyTheme() {
+  // Theme changes swap many CSS variables at once. Disable transitions for a
+  // frame so every control snaps to the new palette together instead of
+  // animating through a muddy, flickering in-between state.
+  document.body.classList.add('theme-switching');
   document.body.dataset.theme = theme.theme;
   document.body.style.setProperty('--accent', theme.accent);
   document.querySelector('meta[name="color-scheme"]').content = LIGHT_THEMES.has(theme.theme)
@@ -197,7 +203,11 @@ function applyTheme() {
   terminal?.setTheme(theme.theme);
   const editorTheme = theme.editorTheme === 'prettier' ? `prettier-${theme.theme}` : theme.theme;
   editor?.setTheme(editorTheme);
-  if (!settingsPop.classList.contains('hidden')) renderSettings();
+  syncSettings();
+  cancelAnimationFrame(themeSwitchFrame);
+  themeSwitchFrame = requestAnimationFrame(() => {
+    themeSwitchFrame = requestAnimationFrame(() => document.body.classList.remove('theme-switching'));
+  });
 }
 
 function loadTheme() {
@@ -267,6 +277,7 @@ function editorThemeGrid() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `editor-theme-btn${theme.editorTheme === opt.id ? ' on' : ''}`;
+    btn.dataset.editorTheme = opt.id;
     btn.setAttribute('aria-pressed', theme.editorTheme === opt.id ? 'true' : 'false');
 
     const preview = document.createElement('span');
@@ -307,6 +318,38 @@ function editorThemeGrid() {
   return wrap;
 }
 
+function syncSettings() {
+  if (settingsPop.classList.contains('hidden')) return;
+  const light = LIGHT_THEMES.has(theme.theme);
+  const shell = THEME_OPTIONS.find((opt) => opt.id === theme.theme) ?? THEME_OPTIONS[0];
+  for (const btn of settingsPop.querySelectorAll('.theme-btn')) {
+    const on = btn.dataset.theme === theme.theme;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+  }
+  for (const btn of settingsPop.querySelectorAll('.swatch')) {
+    btn.classList.toggle('on', btn.dataset.accent === theme.accent);
+  }
+  for (const btn of settingsPop.querySelectorAll('.editor-theme-btn')) {
+    const opt = EDITOR_THEME_OPTIONS.find((item) => item.id === btn.dataset.editorTheme);
+    if (!opt) continue;
+    const on = theme.editorTheme === opt.id;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+    const colors = opt.id === 'prettier'
+      ? PRETTIER_PREVIEW[light ? 'light' : 'dark']
+      : AUTO_PREVIEW[theme.theme] ?? AUTO_PREVIEW.dark;
+    btn.querySelector('.editor-preview').style.background = shell.island;
+    btn.querySelector('.tok-k').style.color = colors.k;
+    btn.querySelector('.tok-f').style.color = colors.f;
+    btn.querySelector('.tok-op').style.color = colors.k;
+    btn.querySelector('.tok-n').style.color = colors.n;
+    btn.querySelector('.tok-s').style.color = colors.s;
+    btn.querySelector('.editor-theme-note').textContent =
+      opt.id === 'prettier' ? 'Brighter, high-contrast syntax' : `Follows ${shell.label}`;
+  }
+}
+
 function openSettings(anchor = settingsBtn) {
   closeMenu();
   closeProjects();
@@ -319,7 +362,6 @@ function openSettings(anchor = settingsBtn) {
   const top = Math.max(8, Math.min(rect.bottom - height, window.innerHeight - height - 8));
   settingsPop.style.left = `${left}px`;
   settingsPop.style.top = `${top}px`;
-  settingsPop.style.transformOrigin = 'bottom left';
   anchor.setAttribute('aria-expanded', 'true');
   setTimeout(() => document.addEventListener('pointerdown', onSettingsOutside), 0);
   document.addEventListener('keydown', onSettingsKey);
@@ -367,6 +409,7 @@ function themeGrid() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `theme-btn${theme.theme === opt.id ? ' on' : ''}`;
+    btn.dataset.theme = opt.id;
     btn.setAttribute('aria-pressed', theme.theme === opt.id ? 'true' : 'false');
     const dot = document.createElement('span');
     dot.className = 'theme-dot';
@@ -392,6 +435,7 @@ function swatchRow() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `swatch${theme.accent === accent ? ' on' : ''}`;
+    btn.dataset.accent = accent;
     btn.style.background = accent;
     btn.setAttribute('aria-label', `Accent ${accent}`);
     btn.addEventListener('click', () => {
