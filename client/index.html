@@ -20,7 +20,7 @@
         <button id="menu-btn" class="ib ib-lg" type="button" aria-label="Main menu" aria-haspopup="menu" aria-expanded="false"></button>
         <button id="project-chip" class="wg" type="button" aria-label="Projects" aria-haspopup="menu" aria-expanded="false" title="Switch project">
           <span class="wg-icon" id="project-icon"></span>
-          <span class="wg-strong">Projects</span>
+          <span class="wg-strong" id="project-name">Projects</span>
           <span class="wg-icon caret-dn" id="project-caret"></span>
         </button>
         <button id="branch-chip" class="wg" type="button" aria-label="Branch" title="Show git panel">
@@ -57,7 +57,7 @@
             <span class="rb-dot amber hidden" id="prob-dot"></span>
           </button>
           <div class="rail-spacer"></div>
-          <button id="tool-settings" class="rb" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"></button>
+          <button id="tool-settings" class="rb" type="button" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"></button>
         </nav>
 
         <!-- side island -->
@@ -192,8 +192,11 @@
       </footer>
     </div>
 
-    <!-- settings / main menu popover -->
+    <!-- main menu popover -->
     <div id="menu-pop" class="hidden" role="menu" aria-label="Menu"></div>
+
+    <!-- settings popover -->
+    <div id="settings-pop" class="hidden" role="dialog" aria-label="Settings"></div>
 
     <!-- projects switcher popover -->
     <div id="projects-pop" class="hidden" role="menu" aria-label="Projects"></div>

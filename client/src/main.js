@@ -1,7 +1,7 @@
 // MCode client entry: wires the islands shell together — window header,
 // left rail, side views (files/search/git/run/plugins), the editor island,
 // the bottom island (terminal/problems/output), the status bar, and the
-// theme system (dark/light + accent) from the design reference.
+// theme system (multiple themes + accent) from the design reference.
 
 import { invoke, ipcAvailable } from './ipc.js';
 import { mountFileTree } from './tree.js';
@@ -23,7 +23,10 @@ const $ = (id) => document.getElementById(id);
 const appEl = $('app');
 const menuBtn = $('menu-btn');
 const menuPop = $('menu-pop');
+const settingsBtn = $('tool-settings');
+const settingsPop = $('settings-pop');
 const projectChip = $('project-chip');
+const projectName = $('project-name');
 const branchChip = $('branch-chip');
 const branchName = $('branch-name');
 const runChip = $('run-chip');
@@ -109,6 +112,18 @@ const SEARCH_KEY = 'mcode.search';
 const PROJECT_KEY = 'mcode.project';
 const PROJECTS_KEY = 'mcode.projects';
 const ACCENTS = ['#2F6BEB', '#7C5CFF', '#E5731F', '#1FA37A'];
+const LIGHT_THEMES = new Set(['light', 'warm']);
+const THEME_OPTIONS = [
+  { id: 'dark', label: 'Dark', frame: '#2c2e32', island: '#1e1f22' },
+  { id: 'light', label: 'Light', frame: '#e4e6eb', island: '#ffffff' },
+  { id: 'charcoal', label: 'Charcoal', frame: '#262626', island: '#191919' },
+  { id: 'midnight', label: 'Midnight', frame: '#0d1420', island: '#0a0f18' },
+  { id: 'warm', label: 'Warm', frame: '#e7e1d6', island: '#fcf9f3' },
+];
+const EDITOR_THEME_OPTIONS = [
+  { id: 'auto', label: 'Match shell' },
+  { id: 'prettier', label: 'Prettier' },
+];
 
 let version = '';
 let rootPath = null;
@@ -120,7 +135,7 @@ let layout = null;
 let gitInfo = null;
 let problemList = [];
 
-let theme = { theme: 'dark', accent: '#2F6BEB' };
+let theme = { theme: 'dark', accent: '#2F6BEB', editorTheme: 'auto' };
 let searchOpts = { case: false, word: false, regex: false };
 let recentSearches = [];
 let sideTool = 'files'; // '' = side island closed
@@ -176,27 +191,154 @@ function setStatus(message) {
 function applyTheme() {
   document.body.dataset.theme = theme.theme;
   document.body.style.setProperty('--accent', theme.accent);
-  document.querySelector('meta[name="color-scheme"]').content = theme.theme;
+  document.querySelector('meta[name="color-scheme"]').content = LIGHT_THEMES.has(theme.theme)
+    ? 'light'
+    : 'dark';
   terminal?.setTheme(theme.theme);
-  editor?.setTheme(theme.theme);
-  renderMenu(); // keep open popover in sync
+  const editorTheme = theme.editorTheme === 'prettier' ? `prettier-${theme.theme}` : theme.theme;
+  editor?.setTheme(editorTheme);
+  if (!settingsPop.classList.contains('hidden')) renderSettings();
 }
 
 function loadTheme() {
   theme = readJson(THEME_KEY, theme);
+  if (!THEME_OPTIONS.some((opt) => opt.id === theme.theme)) theme.theme = 'dark';
+  if (!EDITOR_THEME_OPTIONS.some((opt) => opt.id === theme.editorTheme)) theme.editorTheme = 'auto';
 }
 
 /* --- menu popover -------------------------------------------------------- */
 
 function renderMenu() {
   menuPop.replaceChildren(
-    elSpan('lbl', 'Theme'),
-    segRow(),
-    elSpan('lbl', 'Accent'),
-    swatchRow(),
-    menuRow(`MCode ${version ? `v${version}` : ''}`, () => {}),
+    menuRow('Settings', () => openSettings(settingsBtn)),
+    elSpan('menu-note', `MCode ${version ? `v${version}` : ''}`.trim()),
     menuRow('Reload UI', () => location.reload())
   );
+}
+
+/* --- settings popover ---------------------------------------------------- */
+
+function renderSettings() {
+  const head = document.createElement('div');
+  head.className = 'settings-head';
+  const title = elSpan('settings-title', 'Settings');
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'settings-close';
+  close.setAttribute('aria-label', 'Close settings');
+  close.innerHTML = closeIcon;
+  close.addEventListener('click', closeSettings);
+  head.append(title, close);
+
+  const body = document.createElement('div');
+  body.className = 'settings-body';
+  body.append(
+    elSpan('lbl', 'Shell theme'),
+    themeGrid(),
+    elSpan('lbl', 'Accent'),
+    swatchRow(),
+    elSpan('lbl', 'Editor theme'),
+    editorThemeGrid()
+  );
+  settingsPop.replaceChildren(head, body);
+}
+
+const AUTO_PREVIEW = {
+  dark: { k: '#cf8e6d', s: '#6aab73', n: '#2aacb8', f: '#56a8f5' },
+  charcoal: { k: '#cf8e6d', s: '#6aab73', n: '#2aacb8', f: '#56a8f5' },
+  midnight: { k: '#d99a7a', s: '#7ccf8a', n: '#4fc1d4', f: '#79a6ff' },
+  light: { k: '#0033b3', s: '#067d17', n: '#1750eb', f: '#00627a' },
+  warm: { k: '#8a4b00', s: '#2c7a3f', n: '#226b72', f: '#2a5fb0' },
+};
+const PRETTIER_PREVIEW = {
+  dark: { k: '#ff7ab2', s: '#7ee787', n: '#ffa657', f: '#79c0ff' },
+  light: { k: '#d73a49', s: '#22863a', n: '#e36209', f: '#005cc5' },
+};
+
+function editorThemeGrid() {
+  const wrap = document.createElement('div');
+  wrap.className = 'editor-themes';
+  const light = LIGHT_THEMES.has(theme.theme);
+  const shell = THEME_OPTIONS.find((opt) => opt.id === theme.theme) ?? THEME_OPTIONS[0];
+  for (const opt of EDITOR_THEME_OPTIONS) {
+    const colors = opt.id === 'prettier'
+      ? PRETTIER_PREVIEW[light ? 'light' : 'dark']
+      : AUTO_PREVIEW[theme.theme] ?? AUTO_PREVIEW.dark;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `editor-theme-btn${theme.editorTheme === opt.id ? ' on' : ''}`;
+    btn.setAttribute('aria-pressed', theme.editorTheme === opt.id ? 'true' : 'false');
+
+    const preview = document.createElement('span');
+    preview.className = 'editor-preview';
+    preview.style.background = shell.island;
+    const tok = (cls, text, color) => {
+      const span = document.createElement('span');
+      span.className = cls;
+      span.textContent = text;
+      span.style.color = color;
+      return span;
+    };
+    preview.append(
+      tok('tok-k', 'const', colors.k),
+      tok('tok-f', 'x', colors.f),
+      tok('tok-op', '=', colors.k),
+      tok('tok-n', '42', colors.n),
+      tok('tok-s', '"hi"', colors.s)
+    );
+
+    const text = document.createElement('span');
+    text.className = 'editor-theme-text';
+    const name = elSpan('editor-theme-name', opt.label);
+    const note = elSpan(
+      'editor-theme-note',
+      opt.id === 'prettier' ? 'Brighter, high-contrast syntax' : `Follows ${shell.label}`
+    );
+    text.append(name, note);
+
+    btn.append(preview, text);
+    btn.addEventListener('click', () => {
+      theme.editorTheme = opt.id;
+      persist(THEME_KEY, theme);
+      applyTheme();
+    });
+    wrap.appendChild(btn);
+  }
+  return wrap;
+}
+
+function openSettings(anchor = settingsBtn) {
+  closeMenu();
+  closeProjects();
+  renderSettings();
+  settingsPop.classList.remove('hidden');
+  const rect = anchor.getBoundingClientRect();
+  const width = settingsPop.offsetWidth;
+  const height = settingsPop.offsetHeight;
+  const left = Math.max(8, Math.min(rect.right + 8, window.innerWidth - width - 8));
+  const top = Math.max(8, Math.min(rect.bottom - height, window.innerHeight - height - 8));
+  settingsPop.style.left = `${left}px`;
+  settingsPop.style.top = `${top}px`;
+  settingsPop.style.transformOrigin = 'bottom left';
+  anchor.setAttribute('aria-expanded', 'true');
+  setTimeout(() => document.addEventListener('pointerdown', onSettingsOutside), 0);
+  document.addEventListener('keydown', onSettingsKey);
+}
+
+function closeSettings() {
+  if (settingsPop.classList.contains('hidden')) return;
+  settingsPop.classList.add('hidden');
+  settingsBtn.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('pointerdown', onSettingsOutside);
+  document.removeEventListener('keydown', onSettingsKey);
+}
+
+function onSettingsOutside(event) {
+  if (settingsPop.contains(event.target) || settingsBtn.contains(event.target)) return;
+  closeSettings();
+}
+function onSettingsKey(event) {
+  if (event.key === 'Escape') closeSettings();
 }
 
 function elSpan(cls, text) {
@@ -218,16 +360,23 @@ function menuRow(text, action) {
   return btn;
 }
 
-function segRow() {
+function themeGrid() {
   const wrap = document.createElement('div');
-  wrap.className = 'seg';
-  for (const name of ['dark', 'light']) {
+  wrap.className = 'themes';
+  for (const opt of THEME_OPTIONS) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.textContent = name === 'dark' ? 'Dark' : 'Light';
-    btn.classList.toggle('on', theme.theme === name);
+    btn.className = `theme-btn${theme.theme === opt.id ? ' on' : ''}`;
+    btn.setAttribute('aria-pressed', theme.theme === opt.id ? 'true' : 'false');
+    const dot = document.createElement('span');
+    dot.className = 'theme-dot';
+    dot.style.background = `linear-gradient(135deg, ${opt.frame} 0 50%, ${opt.island} 50% 100%)`;
+    const label = document.createElement('span');
+    label.className = 'theme-name';
+    label.textContent = opt.label;
+    btn.append(dot, label);
     btn.addEventListener('click', () => {
-      theme.theme = name;
+      theme.theme = opt.id;
       persist(THEME_KEY, theme);
       applyTheme();
     });
@@ -257,6 +406,7 @@ function swatchRow() {
 
 function openMenu(anchor) {
   closeProjects();
+  closeSettings();
   const rect = anchor.getBoundingClientRect();
   renderMenu();
   menuPop.classList.remove('hidden');
@@ -281,14 +431,12 @@ function closeMenu() {
   if (menuPop.classList.contains('hidden')) return;
   menuPop.classList.add('hidden');
   menuBtn.setAttribute('aria-expanded', 'false');
-  $('tool-settings')?.setAttribute('aria-expanded', 'false');
   document.removeEventListener('pointerdown', onMenuOutside);
   document.removeEventListener('keydown', onMenuKey);
 }
 
 function onMenuOutside(event) {
-  if (menuPop.contains(event.target)) return;
-  if (menuBtn.contains(event.target) || $('tool-settings').contains(event.target)) return;
+  if (menuPop.contains(event.target) || menuBtn.contains(event.target)) return;
   closeMenu();
 }
 function onMenuKey(event) {
@@ -409,6 +557,7 @@ function renderProjects() {
 
 function openProjects(anchor) {
   closeMenu();
+  closeSettings();
   renderProjects();
   projectsPop.classList.remove('hidden');
   const rect = anchor.getBoundingClientRect();
@@ -538,6 +687,13 @@ function crumb(cls, text) {
 
 function updateStatus() {
   const info = editor?.activeInfo?.() ?? null;
+  const projectLabel = rootPath ? rootName || baseName(rootPath) : 'Projects';
+  if (projectName.textContent !== projectLabel) projectName.textContent = projectLabel;
+  projectChip.title = rootPath ? `${rootPath} — switch project` : 'Switch project';
+  projectChip.setAttribute(
+    'aria-label',
+    rootPath ? `Project: ${rootName || baseName(rootPath)}` : 'Projects'
+  );
   const rootCrumb = crumb('crumb-dim', rootPath || 'No project');
   rootCrumb.title = rootPath || '';
   breadcrumbs.replaceChildren(rootCrumb);
@@ -1021,6 +1177,9 @@ async function init() {
   });
 
   terminal = createTerminal({ host: terminalHost, onStatus: setStatus });
+  // Editor and terminal are created after the first applyTheme call; sync them
+  // with the saved theme now that both exist.
+  applyTheme();
 
   if (!ipcAvailable()) {
     tree = await mountFileTree(treeEl, {
@@ -1097,7 +1256,9 @@ async function openFileFromTree(entry) {
 /* --- wire static listeners --------------------------------------------------------------- */
 
 menuBtn.addEventListener('click', () => (menuPop.classList.contains('hidden') ? openMenu(menuBtn) : closeMenu()));
-$('tool-settings').addEventListener('click', () => (menuPop.classList.contains('hidden') ? openMenu($('tool-settings')) : closeMenu()));
+settingsBtn.addEventListener('click', () =>
+  settingsPop.classList.contains('hidden') ? openSettings(settingsBtn) : closeSettings()
+);
 projectChip.addEventListener('click', () =>
   projectsPop.classList.contains('hidden') ? openProjects(projectChip) : closeProjects()
 );

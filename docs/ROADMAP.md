@@ -20,8 +20,9 @@ Ordered, intentionally small steps — the IDE earns each feature.
 - [x] Syntax highlighting (Monaco token rules + semantic TS/JSON workers)
 - [x] Status bar: breadcrumbs, cursor pos, indent, EOL, language
 - [x] "Islands" UI shell from the design reference (window header, left
-      rail, floating side/editor/bottom islands, dark + light theme, accent
-      picker) — reference: `redesign-islands/Main.dc.html`
+      rail, floating side/editor/bottom islands, five themes (dark, light,
+      charcoal, midnight, warm), accent picker, editor themes (Match shell,
+      Prettier) — reference: `redesign-islands/Main.dc.html`
 - [ ] Settings file, keybindings map
 - [x] Window icons (`assets/icon.png` → `scripts/generate-icons.py`)
 - [ ] `tauri build` bundling
