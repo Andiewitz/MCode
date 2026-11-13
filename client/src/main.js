@@ -108,10 +108,12 @@ const sbLang = $('sb-lang');
 
 const SHELL_KEY = 'mcode.shell';
 const THEME_KEY = 'mcode.theme';
+const EDITOR_KEY = 'mcode.editor';
 const SEARCH_KEY = 'mcode.search';
 const PROJECT_KEY = 'mcode.project';
 const PROJECTS_KEY = 'mcode.projects';
 const ACCENTS = ['#2F6BEB', '#7C5CFF', '#E5731F', '#1FA37A'];
+const FONT_SIZES = [12, 13, 14, 15];
 const LIGHT_THEMES = new Set(['light', 'warm']);
 const THEME_OPTIONS = [
   { id: 'dark', label: 'Dark', frame: '#2c2e32', island: '#1e1f22' },
@@ -136,6 +138,7 @@ let gitInfo = null;
 let problemList = [];
 
 let theme = { theme: 'dark', accent: '#2F6BEB', editorTheme: 'auto' };
+let editorPrefs = { fontSize: 13, wordWrap: false };
 let searchOpts = { case: false, word: false, regex: false };
 let recentSearches = [];
 let sideTool = 'files'; // '' = side island closed
@@ -216,6 +219,18 @@ function loadTheme() {
   if (!EDITOR_THEME_OPTIONS.some((opt) => opt.id === theme.editorTheme)) theme.editorTheme = 'auto';
 }
 
+function loadEditorPrefs() {
+  editorPrefs = readJson(EDITOR_KEY, editorPrefs);
+  const size = Number(editorPrefs.fontSize);
+  editorPrefs.fontSize = FONT_SIZES.includes(size) ? size : 13;
+  editorPrefs.wordWrap = Boolean(editorPrefs.wordWrap);
+}
+
+function applyEditorPrefs() {
+  editor?.setFontSize(editorPrefs.fontSize);
+  editor?.setWordWrap(editorPrefs.wordWrap);
+}
+
 /* --- menu popover -------------------------------------------------------- */
 
 function renderMenu() {
@@ -243,14 +258,79 @@ function renderSettings() {
   const body = document.createElement('div');
   body.className = 'settings-body';
   body.append(
-    elSpan('lbl', 'Shell theme'),
-    themeGrid(),
-    elSpan('lbl', 'Accent'),
-    swatchRow(),
-    elSpan('lbl', 'Editor theme'),
-    editorThemeGrid()
+    settingsSection(
+      'Themes',
+      elSpan('lbl', 'Shell theme'),
+      themeGrid(),
+      elSpan('lbl', 'Accent'),
+      swatchRow(),
+      elSpan('lbl', 'Editor theme'),
+      editorThemeGrid()
+    ),
+    settingsSection(
+      'Editor',
+      settingsRow('Font size', fontSizeSeg()),
+      settingsRow('Word wrap', wordWrapSwitch())
+    )
   );
   settingsPop.replaceChildren(head, body);
+}
+
+function settingsSection(title, ...children) {
+  const section = document.createElement('div');
+  section.className = 'settings-section';
+  const head = elSpan('settings-section-title', title);
+  section.append(head, ...children);
+  return section;
+}
+
+function settingsRow(label, control) {
+  const row = document.createElement('div');
+  row.className = 'settings-row';
+  row.append(elSpan('settings-row-label', label), control);
+  return row;
+}
+
+function fontSizeSeg() {
+  const wrap = document.createElement('div');
+  wrap.className = 'settings-seg';
+  wrap.setAttribute('role', 'group');
+  wrap.setAttribute('aria-label', 'Editor font size');
+  for (const size of FONT_SIZES) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `settings-seg-btn${editorPrefs.fontSize === size ? ' on' : ''}`;
+    btn.dataset.size = String(size);
+    btn.textContent = String(size);
+    btn.setAttribute('aria-pressed', String(editorPrefs.fontSize === size));
+    btn.addEventListener('click', () => {
+      editorPrefs.fontSize = size;
+      persist(EDITOR_KEY, editorPrefs);
+      editor?.setFontSize(size);
+      syncSettings();
+    });
+    wrap.appendChild(btn);
+  }
+  return wrap;
+}
+
+function wordWrapSwitch() {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `settings-switch${editorPrefs.wordWrap ? ' on' : ''}`;
+  btn.setAttribute('role', 'switch');
+  btn.setAttribute('aria-checked', String(editorPrefs.wordWrap));
+  btn.setAttribute('aria-label', 'Word wrap');
+  const thumb = document.createElement('span');
+  thumb.className = 'settings-switch-thumb';
+  btn.appendChild(thumb);
+  btn.addEventListener('click', () => {
+    editorPrefs.wordWrap = !editorPrefs.wordWrap;
+    persist(EDITOR_KEY, editorPrefs);
+    editor?.setWordWrap(editorPrefs.wordWrap);
+    syncSettings();
+  });
+  return btn;
 }
 
 const AUTO_PREVIEW = {
@@ -347,6 +427,16 @@ function syncSettings() {
     btn.querySelector('.tok-s').style.color = colors.s;
     btn.querySelector('.editor-theme-note').textContent =
       opt.id === 'prettier' ? 'Brighter, high-contrast syntax' : `Follows ${shell.label}`;
+  }
+  for (const btn of settingsPop.querySelectorAll('.settings-seg-btn')) {
+    const on = Number(btn.dataset.size) === editorPrefs.fontSize;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+  }
+  const wrapSwitch = settingsPop.querySelector('.settings-switch');
+  if (wrapSwitch) {
+    wrapSwitch.classList.toggle('on', editorPrefs.wordWrap);
+    wrapSwitch.setAttribute('aria-checked', String(editorPrefs.wordWrap));
   }
 }
 
@@ -1151,6 +1241,7 @@ window.addEventListener('focus', scheduleGitRefresh);
 
 async function init() {
   loadTheme();
+  loadEditorPrefs();
   const shell = readJson(SHELL_KEY, { side: sideTool, bottom: bottomTab });
   sideTool = shell.side ?? 'files';
   bottomTab = shell.bottom ?? 'terminal';
@@ -1212,6 +1303,7 @@ async function init() {
     setStatus(`Editor failed to load: ${err}`);
     return;
   }
+  applyEditorPrefs();
   editor.onCursor((pos) => {
     sbPos.textContent = `Ln ${pos.line}, Col ${pos.column}`;
   });

@@ -23,6 +23,8 @@ Ordered, intentionally small steps — the IDE earns each feature.
       rail, floating side/editor/bottom islands, five themes (dark, light,
       charcoal, midnight, warm), accent picker, editor themes (Match shell,
       Prettier) — reference: `redesign-islands/Main.dc.html`
+- [x] Grouped Settings popover (Themes / Editor) with editor font size and
+      word wrap, persisted in `mcode.editor`
 - [ ] Settings file, keybindings map
 - [x] Window icons (`assets/icon.png` → `scripts/generate-icons.py`)
 - [ ] `tauri build` bundling

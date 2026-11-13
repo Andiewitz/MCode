@@ -2,6 +2,7 @@
 // Persisting to disk happens through the save flow (Ctrl/Cmd-S).
 // Island look: pill tabs with file-kind icons, gutter bars diffed
 // against the last saved snapshot (green = added, blue = modified).
+// well this is actully well written looks like someone's a big brain
 
 import { invoke } from './ipc.js';
 import { closeIcon, fileIcon } from './icons.js';
@@ -703,6 +704,12 @@ export async function createEditor({ container, tabsBar, onStateChange, readFile
     revealLocation,
     setTheme(theme) {
       editor.updateOptions({ theme: THEMES[theme] ? `mcode-${theme}` : 'mcode-dark' });
+    },
+    setFontSize(size) {
+      editor.updateOptions({ fontSize: size, lineHeight: Math.round(size * 1.55) });
+    },
+    setWordWrap(on) {
+      editor.updateOptions({ wordWrap: on ? 'on' : 'off' });
     },
     onCursor(cb) {
       cursorCb = cb;
