@@ -57,6 +57,7 @@ const tabsEl = $('tabs');
 const editorEl = $('editor');
 const treeEl = $('file-tree');
 const terminalHost = $('terminal-host');
+const terminalTabs = $('terminal-tabs');
 
 const bottomTabBtns = {
   terminal: $('tab-terminal'),
@@ -758,6 +759,7 @@ async function switchProject(path) {
     onStatus: setStatus,
   });
   if (window.__mcode) window.__mcode.tree = tree;
+  await terminal?.resetAll(path);
   setStatus(`Project: ${path}`);
   updateStatus();
   refreshGit();
@@ -1312,7 +1314,7 @@ async function init() {
     renderProblems();
   });
 
-  terminal = createTerminal({ host: terminalHost, onStatus: setStatus });
+  terminal = createTerminal({ host: terminalHost, tabs: terminalTabs, onStatus: setStatus });
   // Editor and terminal are created after the first applyTheme call; sync them
   // with the saved theme now that both exist.
   applyTheme();
@@ -1415,7 +1417,10 @@ for (const [key, btn] of Object.entries(railBottomBtns)) {
 for (const [key, btn] of Object.entries(bottomTabBtns)) {
   btn.addEventListener('click', () => setBottomTab(key));
 }
-terminalNewBtn.addEventListener('click', () => terminal?.newSession(rootPath));
+terminalNewBtn.addEventListener('click', async () => {
+  await terminal?.add(rootPath);
+  setBottomTab('terminal');
+});
 bottomCloseBtn.addEventListener('click', () => setBottomTab(''));
 $('tree-collapse').addEventListener('click', () => tree?.collapseAll());
 $('tree-new-file').addEventListener('click', () => setStatus('New-file flow is on the roadmap — create it from your file manager for now'));

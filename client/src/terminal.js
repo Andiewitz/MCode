@@ -1,4 +1,5 @@
 import { invoke, listen, ipcAvailable } from './ipc.js';
+import { closeIcon } from './icons.js';
 
 const PALETTES = {
   dark: {
@@ -171,19 +172,169 @@ async function ensureXterm() {
   return { Terminal, FitAddon };
 }
 
-export function createTerminal({ host, onStatus }) {
-  let term = null;
-  let fitAddon = null;
-  let sessionId = null;
-  let unlistenData = null;
-  let unlistenExit = null;
-  let resizeObserver = null;
-  let theme = 'dark';
+let xtermPromise = null;
 
-  async function ensure() {
-    if (term) return;
-    const { Terminal, FitAddon } = await ensureXterm();
-    term = new Terminal({
+function loadXterm() {
+  if (!xtermPromise) xtermPromise = ensureXterm();
+  return xtermPromise;
+}
+
+export function createTerminal({ host, tabs, onStatus }) {
+  let instances = [];
+  let activeId = null;
+  let seq = 0;
+  let counter = 0;
+  let theme = 'dark';
+  let lastCwd = null;
+  let emptyEl = null;
+  let unlistenExit = null;
+  let exitListenerReady = false;
+
+  function activeInstance() {
+    return instances.find((inst) => inst.id === activeId) ?? instances[0] ?? null;
+  }
+
+  function updateTabs() {
+    if (!tabs) return;
+    tabs.replaceChildren(
+      ...instances.map((inst) => {
+        const tab = document.createElement('div');
+        tab.className = `term-tab${inst.id === activeId ? ' on' : ''}`;
+        tab.dataset.id = String(inst.id);
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', inst.id === activeId ? 'true' : 'false');
+        tab.tabIndex = inst.id === activeId ? 0 : -1;
+
+        const label = document.createElement('span');
+        label.className = 'term-tab-label';
+        label.textContent = inst.label;
+
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'term-tab-close';
+        close.setAttribute('aria-label', `Close ${inst.label}`);
+        close.innerHTML = closeIcon;
+        close.addEventListener('click', (event) => {
+          event.stopPropagation();
+          remove(inst.id);
+        });
+
+        tab.append(label, close);
+        tab.addEventListener('click', () => activate(inst.id));
+        tab.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            activate(inst.id);
+          }
+        });
+        return tab;
+      })
+    );
+    tabs.classList.toggle('hidden', instances.length === 0);
+  }
+
+  function renderEmpty() {
+    if (instances.length > 0) {
+      emptyEl?.remove();
+      emptyEl = null;
+      return;
+    }
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.className = 'term-empty';
+      const note = document.createElement('span');
+      note.textContent = 'No terminals open';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wg';
+      btn.textContent = 'New terminal';
+      btn.addEventListener('click', () => add(lastCwd));
+      emptyEl.append(note, btn);
+    }
+    if (emptyEl.parentElement !== host) host.appendChild(emptyEl);
+  }
+
+  async function ensureExitListener() {
+    if (exitListenerReady) return;
+    exitListenerReady = true;
+    if (!ipcAvailable()) return;
+    unlistenExit = await listen('terminal://exit', (event) => {
+      const inst = instances.find((item) => item.sessionId === event?.payload?.id);
+      if (!inst) return;
+      inst.term?.writeln('\r\n[process exited]');
+      inst.sessionId = null;
+      onStatus?.('Terminal exited');
+    });
+  }
+
+  function fitInstance(inst) {
+    if (!inst?.term) return;
+    if (inst.pane.classList.contains('hidden') || inst.pane.closest('.hidden')) return;
+    try { inst.fitAddon?.fit(); } catch {}
+    if (inst.sessionId != null) {
+      invoke('terminal_resize', {
+        id: inst.sessionId,
+        cols: inst.term.cols,
+        rows: inst.term.rows,
+      }).catch(() => {});
+    }
+  }
+
+  function fit() {
+    const inst = activeInstance();
+    if (inst) fitInstance(inst);
+  }
+
+  function activate(id) {
+    const inst = instances.find((item) => item.id === id);
+    if (!inst) return;
+    activeId = id;
+    for (const item of instances) {
+      item.pane.classList.toggle('hidden', item.id !== id);
+    }
+    updateTabs();
+    setTimeout(() => {
+      fitInstance(inst);
+      inst.term?.focus();
+    }, 0);
+  }
+
+  async function start(inst, cwd) {
+    if (!inst || inst.sessionId != null) return;
+    if (!ipcAvailable()) {
+      inst.term.writeln('Terminal requires the Tauri desktop runtime.');
+      return;
+    }
+    lastCwd = cwd || lastCwd;
+    fitInstance(inst);
+    try {
+      const sessionId = await invoke('terminal_create', {
+        cwd: cwd || null,
+        cols: inst.term.cols || 80,
+        rows: inst.term.rows || 24,
+      });
+      inst.sessionId = sessionId;
+      inst.unlistenData = await listen(`terminal://data/${sessionId}`, (event) => {
+        inst.term?.write(event.payload ?? '');
+      });
+      onStatus?.('Terminal ready');
+    } catch (err) {
+      inst.term?.writeln(`\r\nFailed to start terminal: ${err}`);
+      onStatus?.(`Terminal failed: ${err}`);
+    }
+  }
+
+  async function createInstance(cwd) {
+    const { Terminal, FitAddon } = await loadXterm();
+    await ensureExitListener();
+
+    const id = ++seq;
+    const pane = document.createElement('div');
+    pane.className = 'term-pane';
+    pane.dataset.id = String(id);
+    host.appendChild(pane);
+
+    const term = new Terminal({
       cursorBlink: true,
       convertEol: false,
       fontFamily: "'JetBrains Mono', 'Fira Code', ui-monospace, 'Cascadia Mono', monospace",
@@ -192,114 +343,131 @@ export function createTerminal({ host, onStatus }) {
       theme: PALETTES[theme] ?? PALETTES.dark,
     });
     const Fit = FitAddon?.FitAddon || FitAddon;
-    if (typeof Fit === 'function') {
-      fitAddon = new Fit();
-      term.loadAddon(fitAddon);
-    }
-    term.open(host);
+    const fitAddon = typeof Fit === 'function' ? new Fit() : null;
+    if (fitAddon) term.loadAddon(fitAddon);
+    term.open(pane);
+
+    const inst = {
+      id,
+      label: `Terminal ${++counter}`,
+      term,
+      fitAddon,
+      pane,
+      sessionId: null,
+      unlistenData: null,
+      resizeObserver: null,
+    };
 
     term.onData((data) => {
-      if (sessionId != null) invoke('terminal_write', { id: sessionId, data }).catch(() => {});
+      if (inst.sessionId != null) invoke('terminal_write', { id: inst.sessionId, data }).catch(() => {});
     });
 
-    resizeObserver = new ResizeObserver(() => fit());
-    resizeObserver.observe(host);
+    inst.resizeObserver = new ResizeObserver(() => fitInstance(inst));
+    inst.resizeObserver.observe(pane);
 
-    if (ipcAvailable()) {
-      unlistenExit = await listen('terminal://exit', (event) => {
-        if (event?.payload?.id === sessionId) {
-          term?.writeln('\r\n[process exited]');
-          sessionId = null;
-          onStatus?.('Terminal exited');
-        }
-      });
-    }
+    instances.push(inst);
+    activeId = id;
+    updateTabs();
+    renderEmpty();
+    activate(id);
+    await start(inst, cwd || lastCwd);
+    return inst;
   }
 
-  function fit() {
-    if (!term) return;
-    if (host.closest('.hidden')) return;
-    try { fitAddon?.fit(); } catch {}
-    if (sessionId != null) {
-      invoke('terminal_resize', { id: sessionId, cols: term.cols, rows: term.rows }).catch(() => {});
-    }
+  async function add(cwd) {
+    const inst = await createInstance(cwd || lastCwd);
+    activate(inst.id);
+    return inst.id;
   }
 
-  async function start(cwd) {
-    await ensure();
-    if (sessionId != null) return;
-    if (!ipcAvailable()) {
-      term.writeln('Terminal requires the Tauri desktop runtime.');
-      return;
+  async function remove(id) {
+    const index = instances.findIndex((item) => item.id === id);
+    if (index === -1) return;
+    const [inst] = instances.splice(index, 1);
+    inst.resizeObserver?.disconnect();
+    if (inst.sessionId != null) invoke('terminal_kill', { id: inst.sessionId }).catch(() => {});
+    if (inst.unlistenData) {
+      try { (await inst.unlistenData)(); } catch {}
+      inst.unlistenData = null;
     }
-    fit();
-    try {
-      sessionId = await invoke('terminal_create', {
-        cwd: cwd || null,
-        cols: term.cols || 80,
-        rows: term.rows || 24,
-      });
-      unlistenData = await listen(`terminal://data/${sessionId}`, (event) => {
-        term?.write(event.payload ?? '');
-      });
-      onStatus?.('Terminal ready');
-    } catch (err) {
-      term?.writeln(`\r\nFailed to start terminal: ${err}`);
-      onStatus?.(`Terminal failed: ${err}`);
+    inst.term?.dispose();
+    inst.pane.remove();
+    if (activeId === id) {
+      const next = instances[index] ?? instances[index - 1] ?? null;
+      activeId = next?.id ?? null;
+      if (next) activate(next.id);
     }
+    updateTabs();
+    renderEmpty();
   }
 
   async function show(cwd) {
-    host.parentElement?.classList.remove('hidden');
-    try {
-      await start(cwd);
-    } catch (err) {
-      term?.writeln?.(`\r\n${err}`);
-      onStatus?.(`Terminal error: ${err}`);
+    lastCwd = cwd || lastCwd;
+    if (instances.length === 0) {
+      await add(lastCwd);
+      return;
     }
-    setTimeout(() => { fit(); }, 0);
+    const inst = activeInstance();
+    if (!inst) return;
+    activate(inst.id);
+    if (inst.sessionId == null) await start(inst, lastCwd);
+    setTimeout(() => fitInstance(inst), 0);
   }
 
-  // Write a command line into the running shell (used by Run presets).
+  // Write a command line into the active shell (used by Run presets).
   async function runCommand(command, cwd) {
-    await show(cwd);
-    if (sessionId == null) {
+    lastCwd = cwd || lastCwd;
+    if (instances.length === 0) await add(lastCwd);
+    const inst = activeInstance();
+    if (!inst) {
       onStatus?.('Terminal unavailable — cannot run command');
       return;
     }
-    invoke('terminal_write', { id: sessionId, data: `${command}\r` }).catch(() => {});
+    activate(inst.id);
+    if (inst.sessionId == null) await start(inst, lastCwd);
+    if (inst.sessionId == null) {
+      onStatus?.('Terminal unavailable — cannot run command');
+      return;
+    }
+    invoke('terminal_write', { id: inst.sessionId, data: `${command}\r` }).catch(() => {});
   }
 
-  // Kill the current shell and start a fresh one.
-  async function newSession(cwd) {
-    if (sessionId != null) {
-      await invoke('terminal_kill', { id: sessionId }).catch(() => {});
-      sessionId = null;
+  // Restart every shell in the new project root (used when switching projects).
+  async function resetAll(cwd) {
+    lastCwd = cwd || lastCwd;
+    for (const inst of instances) {
+      if (inst.sessionId != null) {
+        await invoke('terminal_kill', { id: inst.sessionId }).catch(() => {});
+        inst.sessionId = null;
+      }
+      if (inst.unlistenData) {
+        try { (await inst.unlistenData)(); } catch {}
+        inst.unlistenData = null;
+      }
+      inst.term?.reset();
+      await start(inst, lastCwd);
     }
-    if (term) {
-      term.dispose();
-      term = null;
-      fitAddon = null;
-    }
-    host.replaceChildren();
-    resizeObserver?.disconnect();
-    resizeObserver = null;
-    await show(cwd);
-    setTimeout(() => term?.focus(), 0);
+    fit();
   }
 
   function setTheme(next) {
     theme = next;
-    if (term) term.options.theme = PALETTES[theme] ?? PALETTES.dark;
+    for (const inst of instances) {
+      if (inst.term) inst.term.options.theme = PALETTES[theme] ?? PALETTES.dark;
+    }
   }
 
   function dispose() {
-    resizeObserver?.disconnect();
-    unlistenData?.then?.((f) => f?.());
+    for (const inst of instances) {
+      inst.resizeObserver?.disconnect();
+      inst.unlistenData?.then?.((f) => f?.());
+      if (inst.sessionId != null) invoke('terminal_kill', { id: inst.sessionId }).catch(() => {});
+      inst.term?.dispose();
+      inst.pane.remove();
+    }
+    instances = [];
     unlistenExit?.then?.((f) => f?.());
-    if (sessionId != null) invoke('terminal_kill', { id: sessionId }).catch(() => {});
-    term?.dispose();
   }
 
-  return { start, show, fit, runCommand, newSession, setTheme, dispose };
+  return { start: show, show, add, remove, fit, runCommand, resetAll, setTheme, dispose };
 }
