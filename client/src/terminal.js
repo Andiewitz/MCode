@@ -433,18 +433,25 @@ export function createTerminal({ host, tabs, onStatus }) {
   }
 
   // Restart every shell in the new project root (used when switching projects).
+  // Each instance is isolated: one failed restart must not strand the rest in
+  // the previous project directory.
   async function resetAll(cwd) {
     lastCwd = cwd || lastCwd;
     for (const inst of instances) {
-      if (inst.sessionId != null) {
-        await invoke('terminal_kill', { id: inst.sessionId }).catch(() => {});
-        inst.sessionId = null;
+      try {
+        if (inst.sessionId != null) {
+          await invoke('terminal_kill', { id: inst.sessionId }).catch(() => {});
+          inst.sessionId = null;
+        }
+        if (inst.unlistenData) {
+          try { (await inst.unlistenData)(); } catch {}
+          inst.unlistenData = null;
+        }
+        inst.term?.reset();
+      } catch (err) {
+        onStatus?.(`Terminal cleanup failed: ${err}`);
       }
-      if (inst.unlistenData) {
-        try { (await inst.unlistenData)(); } catch {}
-        inst.unlistenData = null;
-      }
-      inst.term?.reset();
+      // Always try to start a fresh shell, even if cleanup hit an error.
       await start(inst, lastCwd);
     }
     fit();

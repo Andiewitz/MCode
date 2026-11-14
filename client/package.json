@@ -2,6 +2,9 @@
   "private": true,
   "type": "module",
   "description": "Frontend for the MCode desktop app (Tauri webview). No build step — assets are served by Tauri directly from this directory.",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
   "devDependencies": {
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",

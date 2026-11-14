@@ -7,6 +7,7 @@ import { invoke, ipcAvailable } from './ipc.js';
 import { mountFileTree } from './tree.js';
 import { createEditor } from './editor.js';
 import { createTerminal } from './terminal.js';
+import { applyProjectSwitch } from './project-switch.js';
 import { initLayout } from './layout.js';
 import { fetchGitStatus, commit } from './git.js';
 import { searchFiles, highlight } from './search.js';
@@ -753,14 +754,26 @@ async function switchProject(path) {
   rememberProject(path);
   closeProjects();
   searchResults.replaceChildren();
-  tree = await mountFileTree(treeEl, {
-    rootPath,
-    onOpen: openFileFromTree,
-    onStatus: setStatus,
-  });
-  if (window.__mcode) window.__mcode.tree = tree;
-  await terminal?.resetAll(path);
-  setStatus(`Project: ${path}`);
+  try {
+    await applyProjectSwitch({
+      path,
+      resetTerminals: (next) => terminal?.resetAll(next),
+      mountTree: (next) =>
+        mountFileTree(treeEl, {
+          rootPath: next,
+          onOpen: openFileFromTree,
+          onStatus: setStatus,
+        }),
+      onTree: (nextTree) => {
+        tree = nextTree;
+        if (window.__mcode) window.__mcode.tree = nextTree;
+      },
+      onTerminalError: (err) => setStatus(`Terminal restart failed: ${err}`),
+    });
+    setStatus(`Project: ${path}`);
+  } catch (err) {
+    setStatus(`Could not load project tree: ${err}`);
+  }
   updateStatus();
   refreshGit();
 }

@@ -7,6 +7,9 @@ cd "$(dirname "$0")/.."
 echo "==> cargo test --workspace"
 cargo test --workspace --quiet
 
+echo "==> client: unit tests"
+node --test client/test/*.test.js
+
 echo "==> client: referenced assets exist"
 test -f client/index.html
 test -f client/src/main.js

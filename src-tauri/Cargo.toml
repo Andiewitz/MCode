@@ -14,6 +14,9 @@ tauri-plugin-dialog = "2"
 serde.workspace = true
 serde_json.workspace = true
 portable-pty = "0.9"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 file-explorer = { path = "../features/file-explorer" }
 git-panel = { path = "../features/git-panel" }
 

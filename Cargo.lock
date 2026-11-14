@@ -1751,6 +1751,7 @@ version = "0.1.0"
 dependencies = [
  "file-explorer",
  "git-panel",
+ "libc",
  "portable-pty",
  "serde",
  "serde_json",

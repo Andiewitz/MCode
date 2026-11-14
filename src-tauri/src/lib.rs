@@ -252,6 +252,36 @@ fn terminal_resize(
         .map_err(|e| e.to_string())
 }
 
+/// Signal every process in a terminal's process group.
+///
+/// portable-pty spawns the shell with `setsid()`, so the child pid is also the
+/// process-group id. Foreground programs (editors, TUIs, dev servers) live in
+/// that group and must be signalled too — otherwise killing only the shell
+/// leaves them running behind a dead PTY.
+#[cfg(unix)]
+fn signal_group(pid: u32, signal: libc::c_int) {
+    if pid > 0 {
+        unsafe {
+            libc::kill(-(pid as libc::pid_t), signal);
+        }
+    }
+}
+
+fn terminate_session(session: &mut TermSession) {
+    #[cfg(unix)]
+    if let Some(pid) = session.child.process_id() {
+        // Ask the whole group to exit, then force-kill anything that ignores
+        // SIGHUP (common for full-screen TUI apps). The escalation runs on a
+        // detached thread so the IPC command returns immediately.
+        signal_group(pid, libc::SIGHUP);
+        thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_millis(200));
+            signal_group(pid, libc::SIGKILL);
+        });
+    }
+    let _ = session.child.kill();
+}
+
 #[tauri::command]
 fn terminal_kill(state: State<'_, TerminalState>, id: u32) -> Result<(), String> {
     let mut guard = state
@@ -259,7 +289,52 @@ fn terminal_kill(state: State<'_, TerminalState>, id: u32) -> Result<(), String>
         .lock()
         .map_err(|_| "terminal state lock poisoned".to_string())?;
     if let Some(mut session) = guard.remove(&id) {
-        let _ = session.child.kill();
+        terminate_session(&mut session);
     }
     Ok(())
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use std::os::unix::process::CommandExt;
+    use std::process::Command;
+    use std::time::Duration;
+
+    #[test]
+    fn signal_group_kills_foreground_children() {
+        let dir = std::env::temp_dir().join(format!("mcode-kill-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let marker = dir.join("survived");
+
+        let mut cmd = Command::new("sh");
+        cmd.arg("-c")
+            .arg(format!("(sleep 1; touch '{}') & wait", marker.display()));
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            });
+        }
+        let mut child = cmd.spawn().unwrap();
+        let pid = child.id();
+        thread::sleep(Duration::from_millis(250));
+
+        signal_group(pid, libc::SIGHUP);
+        signal_group(pid, libc::SIGKILL);
+        let _ = child.wait();
+
+        thread::sleep(Duration::from_millis(1200));
+        assert!(
+            !marker.exists(),
+            "foreground child survived the process-group kill"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn signal_group_ignores_zero_pid() {
+        signal_group(0, libc::SIGKILL);
+    }
 }
