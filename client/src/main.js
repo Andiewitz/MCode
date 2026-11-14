@@ -15,7 +15,7 @@ import {
   menuIcon, searchIcon, gitIcon, playIcon, pluginsIcon, terminalIcon,
   problemsIcon, settingsIcon, chevronDownIcon, refreshIcon, plusIcon,
   closeIcon, errorIcon, warningIcon, infoIcon, clockIcon, filePlusIcon,
-  collapseIcon, playIcon as runPlay, folderIcon, githubIcon,
+  collapseIcon, playIcon as runPlay, folderIcon, githubIcon, dockBottomIcon,
 } from './icons.js';
 
 /* --- element refs ---------------------------------------------------- */
@@ -53,6 +53,13 @@ const sideViews = {
 };
 const sideGrip = $('side-grip');
 const bottomGrip = $('bottom-grip');
+const rightGrip = $('right-grip');
+const rightTerminalBody = $('right-terminal-body');
+const terminalDockBtn = $('terminal-dock-btn');
+const rightTerminalNewBtn = $('right-terminal-new');
+const rightTerminalDockBtn = $('right-terminal-dock');
+const rightTerminalCloseBtn = $('right-terminal-close');
+const bottomIsland = $('bottom-island');
 
 const tabsEl = $('tabs');
 const editorEl = $('editor');
@@ -145,6 +152,8 @@ let searchOpts = { case: false, word: false, regex: false };
 let recentSearches = [];
 let sideTool = 'files'; // '' = side island closed
 let bottomTab = 'terminal'; // '' = bottom island closed
+let termDock = 'bottom'; // 'bottom' | 'right'
+let rightOpen = false; // right sidebar visible
 let gitTimer = null;
 let recentProjects = [];
 let committing = false;
@@ -781,7 +790,7 @@ async function switchProject(path) {
 /* --- rail + bottom tab state ---------------------------------------------- */
 
 function saveShell() {
-  persist(SHELL_KEY, { side: sideTool, bottom: bottomTab });
+  persist(SHELL_KEY, { side: sideTool, bottom: bottomTab, termDock, rightOpen });
 }
 
 function setSideTool(name) {
@@ -802,16 +811,93 @@ function toggleSideTool(name) {
   setSideTool(sideTool === name ? '' : name);
 }
 
-function setBottomTab(name) {
-  bottomTab = name;
+function renderBottomTabs() {
   for (const [key, btn] of Object.entries(bottomTabBtns)) {
-    btn.classList.toggle('on', key === name);
-    btn.setAttribute('aria-selected', key === name ? 'true' : 'false');
+    btn.classList.toggle('on', key === bottomTab);
+    btn.setAttribute('aria-selected', key === bottomTab ? 'true' : 'false');
   }
   for (const [key, view] of Object.entries(bottomViews)) {
-    view.classList.toggle('hidden', key !== name);
+    view.classList.toggle('hidden', key !== bottomTab);
   }
-  layout?.setBottomCollapsed(name === '');
+  layout?.setBottomCollapsed(bottomTab === '');
+}
+
+function applyRightOpen() {
+  appEl.dataset.right = rightOpen ? 'expanded' : 'collapsed';
+  appEl.dataset.termDock = termDock;
+  layout?.reflow();
+  const active = termDock === 'right' && rightOpen;
+  terminalDockBtn.classList.toggle('on', active);
+  terminalDockBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+}
+
+// The terminal panel is a single DOM subtree. Moving it keeps every xterm
+// instance and PTY session alive, so a running TUI survives the dock change.
+function placeTerminalView() {
+  const view = bottomViews.terminal;
+  if (!view) return;
+  if (termDock === 'right') {
+    if (view.parentElement !== rightTerminalBody) rightTerminalBody.appendChild(view);
+    view.classList.remove('hidden');
+    return;
+  }
+  if (view.parentElement !== bottomIsland) {
+    bottomIsland.insertBefore(view, bottomViews.problems);
+  }
+  view.classList.toggle('hidden', bottomTab !== 'terminal');
+}
+
+function fitTerminalSoon() {
+  requestAnimationFrame(() => terminal?.fit());
+}
+
+function setRightOpen(open) {
+  if (open && termDock !== 'right') {
+    setTerminalDock('right');
+    return;
+  }
+  rightOpen = Boolean(open);
+  applyRightOpen();
+  placeTerminalView();
+  saveShell();
+  if (rightOpen) {
+    terminal?.show(rootPath);
+    fitTerminalSoon();
+  }
+}
+
+function setTerminalDock(dock) {
+  const next = dock === 'right' ? 'right' : 'bottom';
+  if (next === termDock) {
+    if (next === 'right') setRightOpen(true);
+    else setBottomTab('terminal');
+    return;
+  }
+  termDock = next;
+  if (next === 'right') {
+    rightOpen = true;
+    // The bottom island only holds a terminal when it is docked there.
+    if (bottomTab === 'terminal') bottomTab = '';
+  } else {
+    rightOpen = false;
+    bottomTab = 'terminal';
+  }
+  renderBottomTabs();
+  applyRightOpen();
+  placeTerminalView();
+  saveShell();
+  terminal?.show(rootPath);
+  fitTerminalSoon();
+}
+
+function setBottomTab(name) {
+  if (name === 'terminal' && termDock === 'right') {
+    setRightOpen(true);
+    return;
+  }
+  bottomTab = name;
+  renderBottomTabs();
+  placeTerminalView();
   if (name === 'terminal') {
     terminal?.show(rootPath);
   }
@@ -820,6 +906,10 @@ function setBottomTab(name) {
 }
 
 function toggleBottomTab(name) {
+  if (name === 'terminal' && termDock === 'right') {
+    setRightOpen(!rightOpen);
+    return;
+  }
   setBottomTab(bottomTab === name ? '' : name);
 }
 
@@ -1257,9 +1347,12 @@ window.addEventListener('focus', scheduleGitRefresh);
 async function init() {
   loadTheme();
   loadEditorPrefs();
-  const shell = readJson(SHELL_KEY, { side: sideTool, bottom: bottomTab });
+  const shell = readJson(SHELL_KEY, { side: sideTool, bottom: bottomTab, termDock, rightOpen });
   sideTool = shell.side ?? 'files';
   bottomTab = shell.bottom ?? 'terminal';
+  termDock = shell.termDock === 'right' ? 'right' : 'bottom';
+  rightOpen = termDock === 'right' && Boolean(shell.rightOpen);
+  if (termDock === 'right' && bottomTab === 'terminal') bottomTab = '';
   const savedSearch = readJson(SEARCH_KEY, {});
   searchOpts = {
     case: Boolean(savedSearch.case),
@@ -1299,8 +1392,12 @@ async function init() {
   runAddBtn.innerHTML = plusIcon;
   terminalNewBtn.innerHTML = plusIcon;
   bottomCloseBtn.innerHTML = closeIcon;
+  terminalDockBtn.innerHTML = terminalIcon;
+  rightTerminalNewBtn.innerHTML = plusIcon;
+  rightTerminalDockBtn.innerHTML = dockBottomIcon;
+  rightTerminalCloseBtn.innerHTML = closeIcon;
 
-  layout = initLayout({ app: appEl, sideGrip, bottomGrip });
+  layout = initLayout({ app: appEl, sideGrip, bottomGrip, rightGrip });
 
   applyTheme();
   renderSearchChips();
@@ -1331,6 +1428,8 @@ async function init() {
   // Editor and terminal are created after the first applyTheme call; sync them
   // with the saved theme now that both exist.
   applyTheme();
+  applyRightOpen();
+  placeTerminalView();
 
   if (!ipcAvailable()) {
     tree = await mountFileTree(treeEl, {
@@ -1345,7 +1444,11 @@ async function init() {
     branchName.textContent = 'no git';
     setRemote(null);
     setSideTool(sideTool || 'files');
-    setBottomTab(bottomTab || 'terminal');
+    setBottomTab(termDock === 'right' ? bottomTab : bottomTab || 'terminal');
+    if (rightOpen) {
+      terminal?.show(rootPath);
+      fitTerminalSoon();
+    }
     updateStatus();
     refreshGit();
     return;
@@ -1389,7 +1492,11 @@ async function init() {
   window.__mcode = { editor, terminal, tree };
 
   setSideTool(sideTool || 'files');
-  setBottomTab(bottomTab || 'terminal');
+  setBottomTab(termDock === 'right' ? bottomTab : bottomTab || 'terminal');
+  if (rightOpen) {
+    terminal?.show(rootPath);
+    fitTerminalSoon();
+  }
   setStatus('Ready — core connected');
   updateStatus();
   refreshGit();
@@ -1432,9 +1539,20 @@ for (const [key, btn] of Object.entries(bottomTabBtns)) {
 }
 terminalNewBtn.addEventListener('click', async () => {
   await terminal?.add(rootPath);
-  setBottomTab('terminal');
+  if (termDock === 'right') setRightOpen(true);
+  else setBottomTab('terminal');
 });
 bottomCloseBtn.addEventListener('click', () => setBottomTab(''));
+terminalDockBtn.addEventListener('click', () => {
+  if (termDock === 'right') setRightOpen(!rightOpen);
+  else setTerminalDock('right');
+});
+rightTerminalNewBtn.addEventListener('click', async () => {
+  await terminal?.add(rootPath);
+  setRightOpen(true);
+});
+rightTerminalDockBtn.addEventListener('click', () => setTerminalDock('bottom'));
+rightTerminalCloseBtn.addEventListener('click', () => setRightOpen(false));
 $('tree-collapse').addEventListener('click', () => tree?.collapseAll());
 $('tree-new-file').addEventListener('click', () => setStatus('New-file flow is on the roadmap — create it from your file manager for now'));
 $('run-add').addEventListener('click', () => setStatus('Custom run configurations are on the roadmap'));

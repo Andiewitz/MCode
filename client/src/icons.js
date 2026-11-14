@@ -90,6 +90,12 @@ export const splitIcon = svg(
   1.8
 );
 
+export const dockBottomIcon = svg(
+  '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 12h17"/>',
+  15,
+  1.8
+);
+
 export const dotsIcon = svg(
   '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   15

@@ -270,6 +270,12 @@ export function createTerminal({ host, tabs, onStatus }) {
   function fitInstance(inst) {
     if (!inst?.term) return;
     if (inst.pane.classList.contains('hidden') || inst.pane.closest('.hidden')) return;
+    // Docked-away or collapsed panels report a zero-size box; fitting then
+    // would resize the PTY to 1x1. Wait for the ResizeObserver instead.
+    if (typeof inst.pane.getBoundingClientRect === 'function') {
+      const box = inst.pane.getBoundingClientRect();
+      if (box.width < 2 || box.height < 2) return;
+    }
     try { inst.fitAddon?.fit(); } catch {}
     if (inst.sessionId != null) {
       invoke('terminal_resize', {

@@ -31,7 +31,8 @@ Ordered, intentionally small steps — the IDE earns each feature.
 
 ## 0.4 — power features
 
-- [x] Terminal panel (bottom island, PTY over IPC, run presets, multiple
+- [x] Terminal panel (dockable: bottom island or resizable right sidebar,
+      sessions survive docking; PTY over IPC, run presets, multiple
       terminal instances with tabs, shells restart in the project root on
       project switch)
 - [x] Search across files (`fs_search` IPC: substring / whole-word / regex)

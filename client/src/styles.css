@@ -274,6 +274,10 @@ body.theme-switching *::after {
   background: var(--hover);
   color: var(--text-strong);
 }
+.ib.on {
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
 .ib-lg {
   width: 32px;
   height: 32px;
@@ -539,19 +543,48 @@ body.theme-switching *::after {
   display: none;
 }
 
+/* right sidebar — docked terminal */
+#right-island {
+  width: var(--right-w, 420px);
+  flex: none;
+}
+#app[data-right='collapsed'] #right-island,
+#app[data-right='collapsed'] #right-grip {
+  display: none;
+}
+#right-terminal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#right-terminal-body #terminal-view {
+  padding: 2px 8px 8px;
+}
+#app[data-term-dock='right'][data-right='expanded'] #tab-terminal,
+#app[data-term-dock='right'][data-right='expanded'] #terminal-new {
+  display: none;
+}
+
 /* --- grips ------------------------------------------------------------- */
 
 #side-grip,
-#bottom-grip {
+#bottom-grip,
+#right-grip {
   flex: none;
   position: relative;
   touch-action: none;
   z-index: 2;
 }
-#side-grip {
+#side-grip,
+#right-grip {
   width: 4px;
   margin: 0 -1px; /* widen the hit area into the islands */
   cursor: col-resize;
+}
+#right-grip {
+  margin: 0 -1px 0 0;
 }
 #bottom-grip {
   height: 4px;
@@ -559,18 +592,24 @@ body.theme-switching *::after {
   cursor: row-resize;
 }
 #side-grip::before,
-#bottom-grip::before {
+#bottom-grip::before,
+#right-grip::before {
   content: '';
   position: absolute;
   border-radius: 2px;
   background: transparent;
   transition: background-color 0.12s ease-out;
 }
-#side-grip::before {
+#side-grip::before,
+#right-grip::before {
   left: 1px;
   top: 0;
   bottom: 0;
   width: 2px;
+}
+#right-grip::before {
+  left: auto;
+  right: 1px;
 }
 #bottom-grip::before {
   top: 1px;
@@ -580,7 +619,9 @@ body.theme-switching *::after {
 }
 #side-grip:hover::before,
 #bottom-grip:hover::before,
+#right-grip:hover::before,
 body.col-resizing #side-grip::before,
+body.col-resizing #right-grip::before,
 body.row-resizing #bottom-grip::before {
   background: var(--accent-soft);
 }
